@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIY PARTY WORKSHOP — Захиалга</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rose: #e8527a; --rose-dark: #b03060; --gold: #c9a84c;
+  --cream: #fdf6f0; --dark: #1a0a12; --light: #f9eef3;
+  --success: #3dba7e; --radius: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--cream); min-height:100vh; }
+
+.header {
+  background:linear-gradient(135deg,var(--dark),#3d1226);
+  padding:28px 20px 24px;
+  text-align:center; color:white;
+}
+.h-logo { font-family:'Playfair Display',serif; font-size:26px; font-weight:900; }
+.h-sub { font-size:11px; letter-spacing:3px; color:var(--gold); margin-top:4px; text-transform:uppercase; }
+.h-desc { font-size:13px; opacity:0.6; margin-top:8px; }
+
+.container { max-width:500px; margin:0 auto; padding:20px 16px 40px; }
+
+.card {
+  background:white; border-radius:var(--radius);
+  box-shadow:0 2px 12px rgba(180,50,90,0.08);
+  margin-bottom:16px; overflow:hidden;
+}
+.card-header {
+  padding:14px 18px; border-bottom:1px solid #f0e0e8;
+  font-weight:700; font-size:14px; color:var(--dark);
+  display:flex; align-items:center; gap:8px;
+}
+.card-body { padding:16px 18px; }
+
+.input-label { font-size:12px; font-weight:600; color:#888; margin-bottom:5px; display:block; }
+.input-field {
+  width:100%; padding:11px 14px;
+  border:1.5px solid #e8d0d8; border-radius:9px;
+  font-size:14px; font-family:'DM Sans',sans-serif;
+  outline:none; transition:border-color 0.15s; background:white;
+}
+.input-field:focus { border-color:var(--rose); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:400px){ .form-row { grid-template-columns:1fr; } }
+
+/* Items */
+.items-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.item-card {
+  background:var(--light); border:2px solid transparent;
+  border-radius:10px; padding:12px; cursor:pointer;
+  transition:all 0.15s; position:relative;
+}
+.item-card.selected { border-color:var(--rose); background:#fff0f4; }
+.item-card.selected::after {
+  content:'✓'; position:absolute; top:6px; right:8px;
+  color:var(--rose); font-weight:900; font-size:14px;
+}
+.ic-icon { font-size:24px; margin-bottom:4px; }
+.ic-name { font-size:12px; font-weight:700; color:var(--dark); line-height:1.3; }
+.ic-price { font-size:13px; color:var(--rose); font-weight:700; margin-top:4px; }
+.ic-stock { font-size:10px; color:#bbb; margin-top:2px; }
+
+/* qty control */
+.qty-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.qty-btn {
+  width:28px; height:28px; border-radius:7px;
+  border:1.5px solid #e0c8d0; background:white;
+  cursor:pointer; font-size:16px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.qty-btn:active { background:var(--rose); color:white; border-color:var(--rose); }
+
+/* cart summary */
+.cart-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f5e8ec; font-size:14px; }
+.cart-total { font-size:17px; font-weight:700; display:flex; justify-content:space-between; padding-top:12px; margin-top:4px; }
+
+/* step indicator */
+.steps { display:flex; gap:0; margin-bottom:24px; }
+.step {
+  flex:1; text-align:center; padding:10px 4px;
+  font-size:11px; font-weight:600; color:#ccc;
+  border-bottom:3px solid #eee; transition:all 0.2s;
+}
+.step.active { color:var(--rose); border-bottom-color:var(--rose); }
+.step.done { color:var(--success); border-bottom-color:var(--success); }
+
+.btn {
+  padding:13px 20px; border-radius:10px; border:none;
+  cursor:pointer; font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:700; width:100%;
+  transition:all 0.15s; margin-top:8px;
+}
+.btn-primary { background:var(--rose); color:white; }
+.btn-primary:active { background:var(--rose-dark); }
+.btn-outline { background:white; color:var(--dark); border:1.5px solid #e0c8d0; }
+
+.tab-btns { display:flex; gap:8px; margin-bottom:14px; }
+.tab-btn {
+  flex:1; padding:9px; border-radius:8px; border:1.5px solid #e0c8d0;
+  background:white; font-size:13px; font-weight:600; cursor:pointer; color:#aaa;
+}
+.tab-btn.active { background:var(--rose); color:white; border-color:var(--rose); }
+
+.search-wrap { position:relative; margin-bottom:14px; }
+.search-wrap input { padding-left:36px; }
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#ccc; pointer-events:none; }
+
+.success-screen {
+  text-align:center; padding:40px 20px;
+  display:none;
+}
+.success-icon { font-size:64px; margin-bottom:16px; }
+.success-title { font-family:'Playfair Display',serif; font-size:24px; color:var(--dark); margin-bottom:8px; }
+.success-sub { font-size:14px; color:#aaa; line-height:1.6; }
+
+.loading { text-align:center; padding:30px; color:#aaa; font-size:14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-logo">DIY PARTY WORKSHOP</div>
+  <div class="h-sub">Чимэглэлийн түрээс & дэлгүүр</div>
+  <div class="h-desc">📞 99822534 · Улаанбаатар</div>
+</div>
+
+<div class="container">
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step1">1. Бараа</div>
+    <div class="step" id="step2">2. Мэдээлэл</div>
+    <div class="step" id="step3">3. Баталгаа</div>
+  </div>
+
+  <!-- Success screen -->
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">Захиалга амжилттай!</div>
+    <div class="success-sub">
+      Таны захиалгыг хүлээн авлаа.<br>
+      Удахгүй холбоо барина.<br><br>
+      📞 <strong>99822534</strong>
+    </div>
+    <button class="btn btn-outline" style="margin-top:20px;width:auto;padding:10px 30px" onclick="location.reload()">Дахин захиалах</button>
+  </div>
+
+  <!-- STEP 1: Items -->
+  <div id="screen-1">
+    <div class="card">
+      <div class="card-header">🎁 Бараа сонгох</div>
+      <div class="card-body">
+        <div class="tab-btns">
+          <button class="tab-btn active" id="otab-rent" onclick="switchOTab('rent')">🔄 Түрээс</button>
+          <button class="tab-btn" id="otab-sell" onclick="switchOTab('sell')">🛍️ Зарах</button>
+        </div>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="input-field" id="o-search" placeholder="Бараа хайх..." oninput="renderOrderItems()">
+        </div>
+        <div id="order-loading" class="loading">🔄 Бараанууд татаж байна...</div>
+        <div class="items-grid" id="order-items-grid"></div>
+      </div>
+    </div>
+
+    <!-- Cart -->
+    <div class="card" id="cart-card" style="display:none">
+      <div class="card-header">🛒 Сонгосон бараанууд</div>
+      <div class="card-body">
+        <div id="order-cart-rows"></div>
+        <div class="cart-total">
+          <span>Нийт дүн</span>
+          <span id="order-cart-total" style="color:var(--rose)">0₮</span>
+        </div>
+        <button class="btn btn-primary" onclick="goStep(2)">Үргэлжлүүлэх →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Info -->
+  <div id="screen-2" style="display:none">
+    <div class="card">
+      <div class="card-header">👤 Таны мэдээлэл</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-row">
+          <div><label class="input-label">Нэр *</label><input class="input-field" id="c-name" placeholder="Бүтэн нэр"></div>
+          <div><label class="input-label">Утас *</label><input class="input-field" id="c-phone" placeholder="99xxxxxx"></div>
+        </div>
+        <div class="form-row">
+          <div><label class="input-label">Авах огноо *</label><input class="input-field" id="c-date" type="date"></div>
+          <div><label class="input-label">Буцаах огноо</label><input class="input-field" id="c-return" type="date"></div>
+        </div>
+        <div>
+          <label class="input-label">Хаяг</label>
+          <input class="input-field" id="c-addr" placeholder="Хаяг, байршил...">
+        </div>
+        <div>
+          <label class="input-label">Тэмдэглэл</label>
+          <input class="input-field" id="c-note" placeholder="Нэмэлт хүсэлт...">
+        </div>
+        <div>
+          <label class="input-label">Төлбөрийн хэлбэр</label>
+          <select class="input-field" id="c-payment">
+            <option value="transfer">📱 Шилжүүлэг</option>
+            <option value="qpay">📲 QPay</option>
+            <option value="cash">💵 Бэлэн мөнгө</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="goStep(1)">← Буцах</button>
+      <button class="btn btn-primary" style="flex:2" onclick="goStep(3)">Үргэлжлүүлэх →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Confirm -->
+  <div id="screen-3" style="display:none">
+    <div class="card">
+      <div class="card-header">✅ Захиалга баталгаажуулах</div>
+      <div class="card-body">
+        <div id="confirm-summary"></div>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;font-size:12px;color:#166534;margin-top:14px">
+          📌 Захиалга илгээсний дараа манай баг <strong>99822534</strong> дугаараас холбоо барина.
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="goStep(2)">← Буцах</button>
+      <button class="btn btn-primary" style="flex:2" id="submit-btn" onclick="submitOnlineOrder()">🎉 Захиалга илгээх</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZGYXFig5tksyjxuax5s64_6gUYZjXpesa-3SY3YfJgUkkfhwo04HpAq1-ldmYO42o/exec';
+let inventory = [];
+let cart = [];
+let oTab = 'rent';
+
+function fmtMoney(n) { return Number(n).toLocaleString('mn-MN') + '₮'; }
+
+// Load inventory from Apps Script
+async function loadInventory() {
+  try {
+    const resp = await fetch(SCRIPT_URL, { redirect:'follow' });
+    const json = await resp.json();
+    const str = v => String(v==null?'':v).trim();
+    inventory = json
+      .filter(r => str(r['Product Name']))
+      .map((r,i) => ({
+        id: i+1,
+        name: str(r['Product Name']),
+        cat: str(r['Category'])||'Бусад',
+        type: (str(r['Type'])||'rent').toLowerCase()==='sale'?'sell':'rent',
+        qty: parseInt(r['Stock']||0)||0,
+        price: parseFloat(str(r['Selling_price']||'0').replace(/[₮,\s]/g,''))||0,
+        color: str(r['Color']),
+        size: str(r['Size']),
+        imageUrl: str(r['Image_url']||r['image_url']||''),
+      }));
+    document.getElementById('order-loading').style.display = 'none';
+    renderOrderItems();
+  } catch(e) {
+    document.getElementById('order-loading').textContent = '⚠️ Бараа татахад алдаа гарлаа. Дахин оролдоно уу.';
+  }
+}
+
+function switchOTab(t) {
+  oTab = t;
+  document.getElementById('otab-rent').className = 'tab-btn ' + (t==='rent'?'active':'');
+  document.getElementById('otab-sell').className = 'tab-btn ' + (t==='sell'?'active':'');
+  renderOrderItems();
+}
+
+const icons = {'Бөмбөлөг':'🎈','Цэцэг':'💐','Дэвсгэр':'🎪','Гэрэлт тоо':'🔢','Самбар':'🪧','Sequin':'✨','Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Бусад':'🎁'};
+
+function renderOrderItems() {
+  const q = (document.getElementById('o-search')?.value||'').toLowerCase();
+  const filtered = inventory.filter(i =>
+    i.type === oTab && i.qty > 0 &&
+    (!q || i.name.toLowerCase().includes(q) || (i.cat||'').toLowerCase().includes(q))
+  );
+  const grid = document.getElementById('order-items-grid');
+  const cartItem = id => cart.find(c=>c.id===id);
+  grid.innerHTML = filtered.map(item => {
+    const inCart = cartItem(item.id);
+    return `<div class="item-card ${inCart?'selected':''}" onclick="toggleItem(${item.id})">
+      ${item.imageUrl ? `<img src="${item.imageUrl}" style="width:100%;height:65px;object-fit:cover;border-radius:6px;margin-bottom:6px" onerror="this.style.display='none'">` : `<div class="ic-icon">${icons[item.cat]||'🎁'}</div>`}
+      <div class="ic-name">${item.name}</div>
+      ${item.color||item.size?`<div style="font-size:10px;color:#bbb">${[item.color,item.size].filter(Boolean).join(' / ')}</div>`:''}
+      <div class="ic-price">${fmtMoney(item.price)}</div>
+      <div class="ic-stock">Үлдэгдэл: ${item.qty}ш</div>
+      ${inCart ? `<div class="qty-row" onclick="event.stopPropagation()">
+        <button class="qty-btn" onclick="updateQty(${item.id},-1)">−</button>
+        <span style="font-weight:700;min-width:20px;text-align:center">${inCart.qty}</span>
+        <button class="qty-btn" onclick="updateQty(${item.id},1)">+</button>
+      </div>` : ''}
+    </div>`;
+  }).join('') || `<div style="grid-column:span 2;text-align:center;padding:20px;color:#ccc">Бараа олдсонгүй</div>`;
+  renderCart();
+}
+
+function toggleItem(id) {
+  const item = inventory.find(i=>i.id===id);
+  if (!item) return;
+  const idx = cart.findIndex(c=>c.id===id);
+  if (idx>=0) cart.splice(idx,1);
+  else cart.push({id:item.id,name:item.name,price:item.price,qty:1,type:item.type,maxQty:item.qty});
+  renderOrderItems();
+}
+
+function updateQty(id, delta) {
+  const c = cart.find(c=>c.id===id);
+  if (!c) return;
+  c.qty = Math.max(1, Math.min(c.maxQty, c.qty + delta));
+  renderOrderItems();
+}
+
+function renderCart() {
+  const card = document.getElementById('cart-card');
+  if (!cart.length) { card.style.display='none'; return; }
+  card.style.display='block';
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  document.getElementById('order-cart-rows').innerHTML = cart.map(c=>
+    `<div class="cart-row"><span>${c.name} ×${c.qty}</span><span style="font-weight:700">${fmtMoney(c.price*c.qty)}</span></div>`
+  ).join('');
+  document.getElementById('order-cart-total').textContent = fmtMoney(total);
+}
+
+function goStep(n) {
+  if (n===2 && !cart.length) { alert('Бараа сонгоно уу!'); return; }
+  if (n===3) {
+    const name = document.getElementById('c-name').value.trim();
+    const phone = document.getElementById('c-phone').value.trim();
+    const date = document.getElementById('c-date').value;
+    if (!name||!phone||!date) { alert('Нэр, утас, авах огноо оруулна уу!'); return; }
+    renderConfirm();
+  }
+  document.getElementById('screen-1').style.display = n===1?'block':'none';
+  document.getElementById('screen-2').style.display = n===2?'block':'none';
+  document.getElementById('screen-3').style.display = n===3?'block':'none';
+  ['step1','step2','step3'].forEach((s,i)=>{
+    const el = document.getElementById(s);
+    el.className = 'step' + (i+1<n?' done':i+1===n?' active':'');
+  });
+  window.scrollTo(0,0);
+}
+
+function renderConfirm() {
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const payLabels = {transfer:'📱 Шилжүүлэг',qpay:'📲 QPay',cash:'💵 Бэлэн'};
+  document.getElementById('confirm-summary').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+      <div class="cart-row"><span style="color:#aaa">Нэр</span><span style="font-weight:600">${document.getElementById('c-name').value}</span></div>
+      <div class="cart-row"><span style="color:#aaa">Утас</span><span style="font-weight:600">${document.getElementById('c-phone').value}</span></div>
+      <div class="cart-row"><span style="color:#aaa">Авах огноо</span><span style="font-weight:600">${document.getElementById('c-date').value}</span></div>
+      ${document.getElementById('c-return').value?`<div class="cart-row"><span style="color:#aaa">Буцаах</span><span style="font-weight:600">${document.getElementById('c-return').value}</span></div>`:''}
+      ${document.getElementById('c-addr').value?`<div class="cart-row"><span style="color:#aaa">Хаяг</span><span style="font-weight:600">${document.getElementById('c-addr').value}</span></div>`:''}
+      <div style="border-top:1px solid #f0e0e8;margin:4px 0"></div>
+      ${cart.map(c=>`<div class="cart-row"><span>${c.name} ×${c.qty}</span><span style="font-weight:700;color:var(--rose)">${fmtMoney(c.price*c.qty)}</span></div>`).join('')}
+      <div class="cart-total"><span>Нийт</span><span style="color:var(--rose)">${fmtMoney(total)}</span></div>
+      <div class="cart-row"><span style="color:#aaa">Барьцаа (50%)</span><span style="font-weight:600">${fmtMoney(Math.round(total*0.5))}</span></div>
+      <div class="cart-row"><span style="color:#aaa">Төлбөр</span><span>${payLabels[document.getElementById('c-payment').value]}</span></div>
+    </div>
+  `;
+}
+
+async function submitOnlineOrder() {
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = '⏳ Илгээж байна...';
+  btn.disabled = true;
+
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const orderData = {
+    action: 'newOrder',
+    name: document.getElementById('c-name').value.trim(),
+    phone: document.getElementById('c-phone').value.trim(),
+    date: document.getElementById('c-date').value,
+    returnDate: document.getElementById('c-return').value,
+    addr: document.getElementById('c-addr').value,
+    note: document.getElementById('c-note').value,
+    payment: document.getElementById('c-payment').value,
+    total,
+    items: JSON.stringify(cart.map(c=>({name:c.name,qty:c.qty,price:c.price,type:c.type}))),
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+
+  const params = new URLSearchParams(orderData);
+  try {
+    await fetch(SCRIPT_URL + '?' + params.toString(), { redirect:'follow' });
+    document.getElementById('screen-3').style.display = 'none';
+    document.getElementById('success-screen').style.display = 'block';
+    document.querySelector('.steps').style.display = 'none';
+  } catch(e) {
+    btn.textContent = '🎉 Захиалга илгээх';
+    btn.disabled = false;
+    alert('Алдаа гарлаа. Дахин оролдоно уу эсвэл 99822534 дугаарт залгана уу.');
+  }
+}
+
+// Init
+loadInventory();
+</script>
+</body>
+</html>
