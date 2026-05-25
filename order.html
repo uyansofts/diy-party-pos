@@ -421,7 +421,7 @@ async function submitOnlineOrder(){
 function openLightbox(id){
   const item=inventory.find(i=>i.id===id);
   if(!item||!item.imageUrl)return;
-  document.getElementById('lightbox-img').src=${item.imageUrl};
+  document.getElementById('lightbox-img').src=item.imageUrl;
   document.getElementById('lightbox-name').textContent=item.name;
   document.getElementById('lightbox-price').textContent=fmtMoney(item.price);
   document.getElementById('lightbox').classList.add('open');
