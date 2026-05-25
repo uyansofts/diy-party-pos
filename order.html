@@ -214,7 +214,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyi0LYFtiqGWVuijOyuREcR3AC4COyTGOxGTp_2TbuG5GKQl76T5Sx2IdrJJL48ENdu/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyXBeBE9jQcgz8mYjaePNTgBS3oO1vnM3qQaJddEgzxb3XeVHUKiCl-jTCx1uKb2l3k/exec';
 const icons = {'Бөмбөлөг':'🎈','Цэцэг':'💐','Дэвсгэр':'🎪','Гэрэлт тоо':'🔢','Самбар':'🪧','Sequin':'✨','Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Бусад':'🎁'};
 let inventory=[], cart=[], oTab='rent', activeCat='Бүгд';
 
@@ -246,7 +246,7 @@ async function loadInventory(){
       qty:parseInt(r['Stock']||0)||0,
       price:parseFloat(str(r['Selling_price']||'0').replace(/[₮,\s]/g,''))||0,
       color:str(r['Color']),size:str(r['Size']),
-      imageUrl:(r['Image_url']||r['image_url']||''),
+      imageUrl:(str(r['Image_url']||r['image_url']||'')),
     }));
     document.getElementById('order-loading').style.display='none';
     renderCatTabs();
