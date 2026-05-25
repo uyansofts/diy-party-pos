@@ -246,7 +246,7 @@ async function loadInventory(){
       qty:parseInt(r['Stock']||0)||0,
       price:parseFloat(str(r['Selling_price']||'0').replace(/[₮,\s]/g,''))||0,
       color:str(r['Color']),size:str(r['Size']),
-      imageUrl:(str(r['Image_url']||r['image_url']||'')),
+      imageUrl:(r['Image_url']||r['image_url']||''),
     }));
     document.getElementById('order-loading').style.display='none';
     renderCatTabs();
@@ -421,7 +421,7 @@ async function submitOnlineOrder(){
 function openLightbox(id){
   const item=inventory.find(i=>i.id===id);
   if(!item||!item.imageUrl)return;
-  document.getElementById('lightbox-img').src=item.imageUrl;
+  document.getElementById('lightbox-img').src=${item.imageUrl};
   document.getElementById('lightbox-name').textContent=item.name;
   document.getElementById('lightbox-price').textContent=fmtMoney(item.price);
   document.getElementById('lightbox').classList.add('open');
