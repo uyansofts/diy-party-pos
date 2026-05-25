@@ -297,7 +297,7 @@ function renderOrderItems(){
     const inCart=cartItem(item.id);
     const imgHtml=item.imageUrl
       ?`<div style="position:relative">
-          <img class="item-img" src=${item.imageUrl} alt="${item.name}" onerror="this.parentElement.innerHTML='<div class=\\'item-img-placeholder\\'>${icons[item.cat]||'🎁'}</div>'" onclick="event.stopPropagation();openLightbox(${item.id})">
+          <img class="item-img" src="${item.imageUrl}" alt="${item.name}" onerror="this.parentElement.innerHTML='<div class=\\'item-img-placeholder\\'>${icons[item.cat]||'🎈'}</div>'" onclick="event.stopPropagation();openLightbox(${item.id})">
           <span class="img-zoom" onclick="event.stopPropagation();openLightbox(${item.id})">🔍</span>
         </div>`
       :`<div class="item-img-placeholder">${icons[item.cat]||'🎁'}</div>`;
