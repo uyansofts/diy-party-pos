@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIY PARTY WORKSHOP — POS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rose: #e8527a;
+  --rose-dark: #b03060;
+  --gold: #c9a84c;
+  --cream: #fdf6f0;
+  --dark: #1a0a12;
+  --mid: #6b3a50;
+  --light: #f9eef3;
+  --success: #3dba7e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --sidebar-w: 220px;
+  --radius: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--dark);
+  min-height: 100vh;
+  display: flex;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  #print-invoice, #print-invoice * { visibility: visible; }
+  #print-invoice {
+    position: fixed;
+    left: 0; top: 0;
+    width: 100%;
+    padding: 20px;
+  }
+  .modal-overlay { display: none !important; }
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--dark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 100;
+}
+.sidebar-brand {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.sb-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 900;
+  color: white;
+  line-height: 1.2;
+}
+.sb-sub { font-size: 10px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+.sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px; font-weight: 500;
+  transition: all 0.18s;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+.nav-item.active { background: var(--rose); color: white; }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ===== MAIN ===== */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  background: white;
+  padding: 14px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #f0e0e8;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 18px; font-weight: 700; color: var(--dark); }
+.topbar-date { font-size: 12px; color: #999; }
+.topbar-right { display: flex; gap: 10px; align-items: center; }
+.badge-stat {
+  background: var(--light);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--mid);
+  font-weight: 600;
+}
+.badge-stat span { color: var(--rose); }
+
+.content { padding: 24px 28px; flex: 1; }
+
+/* TABS */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===== DASHBOARD ===== */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+@media(max-width:900px){ .stats-grid { grid-template-columns: repeat(2,1fr); } }
+.stat-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: 0 2px 12px rgba(180,50,90,0.07);
+  border-top: 3px solid transparent;
+}
+.stat-card.rose { border-top-color: var(--rose); }
+.stat-card.gold { border-top-color: var(--gold); }
+.stat-card.green { border-top-color: var(--success); }
+.stat-card.warn { border-top-color: var(--warn); }
+.sc-label { font-size: 11px; color: #aaa; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+.sc-value { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; }
+.sc-note { font-size: 11px; color: #bbb; margin-top: 4px; }
+
+.section-title {
+  font-size: 15px; font-weight: 700; color: var(--dark);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+
+/* ===== ORDER FORM ===== */
+.order-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+@media(max-width:900px){ .order-grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 12px rgba(180,50,90,0.07);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0e0e8;
+  font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-body { padding: 18px 20px; }
+
+.items-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+@media(max-width:600px){ .items-grid { grid-template-columns: 1fr; } }
+
+.item-btn {
+  background: var(--light);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  display: flex; flex-direction: column; justify-content: space-between;
+  min-height: 80px;
+}
+.item-btn:hover { border-color: var(--rose); background: #fff0f4; }
+.item-btn.selected { border-color: var(--rose); background: #fff0f4; }
+.ib-name { font-size: 12px; font-weight: 600; word-break: break-word; line-height: 1.3; }
+.ib-price { font-size: 14px; color: var(--rose); font-weight: 700; margin-top: 6px; }
+.ib-icon { font-size: 18px; margin-bottom: 4px; }
+
+/* cart */
+.cart-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5e8ec;
+  gap: 8px;
+}
+.ci-name { font-size: 13px; flex: 1; }
+.ci-qty { display: flex; align-items: center; gap: 6px; }
+.qty-btn {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  border: 1px solid #e0c8d0;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.qty-btn:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.qty-num { font-size: 13px; font-weight: 700; min-width: 20px; text-align: center; }
+.ci-total { font-size: 13px; font-weight: 700; color: var(--rose); min-width: 60px; text-align: right; }
+.ci-del { background: none; border: none; cursor: pointer; color: #ccc; font-size: 16px; }
+.ci-del:hover { color: var(--danger); }
+
+.cart-total {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 2px solid var(--dark);
+}
+.ct-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: #777; }
+.ct-row.total { font-size: 16px; font-weight: 700; color: var(--dark); }
+
+.input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e8d0d8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+  background: white;
+}
+.input-field:focus { border-color: var(--rose); }
+.input-label { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 5px; display: block; }
+
+.btn {
+  padding: 11px 20px;
+  border-radius: 9px;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--rose); color: white; }
+.btn-primary:hover { background: var(--rose-dark); }
+.btn-gold { background: var(--gold); color: white; }
+.btn-gold:hover { background: #a88030; }
+.btn-outline { background: white; color: var(--dark); border: 1.5px solid #e0c8d0; }
+.btn-outline:hover { border-color: var(--rose); color: var(--rose); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ===== TABLE ===== */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #aaa;
+  background: #fdf6f8;
+  border-bottom: 1px solid #f0e0e8;
+}
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f9f0f3;
+  vertical-align: middle;
+}
+.data-table tr:hover td { background: #fdf6f8; }
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.sb-active { background: #d1fae5; color: #065f46; }
+.sb-pending { background: #fef3c7; color: #92400e; }
+.sb-done { background: #e0e7ff; color: #3730a3; }
+.sb-cancelled { background: #fee2e2; color: #991b1b; }
+
+/* ===== CALENDAR ===== */
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+.cal-day-name { text-align: center; font-size: 11px; color: #aaa; padding: 6px 0; font-weight: 600; }
+.cal-day {
+  min-height: 56px;
+  background: white;
+  border-radius: 8px;
+  padding: 6px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 12px;
+}
+.cal-day:hover { border-color: var(--rose); }
+.cal-day.today { border-color: var(--rose); background: #fff0f4; }
+.cal-day.has-order { background: #fff8f0; }
+.cal-day .day-num { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.cal-day .day-dot { width: 6px; height: 6px; background: var(--rose); border-radius: 50%; display: inline-block; margin: 1px; }
+.cal-day.other-month { opacity: 0.3; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white;
+  border-radius: 18px;
+  width: 100%; max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.modal-header {
+  background: var(--dark);
+  padding: 16px 22px;
+  color: white;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-title { font-weight: 700; font-size: 16px; }
+.modal-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; opacity: 0.7; }
+.modal-body { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { padding: 16px 22px; border-top: 1px solid #f0e0e8; display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ===== INVOICE ===== */
+.invoice {
+  background: white;
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 420px;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(180,50,90,0.12);
+}
+.inv-logo { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; color: var(--rose); }
+.inv-sub { font-size: 10px; letter-spacing: 3px; color: #aaa; text-transform: uppercase; }
+.inv-divider { border: none; border-top: 1px solid #f0e0e8; margin: 16px 0; }
+.inv-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; }
+.inv-total { font-size: 18px; font-weight: 700; border-top: 2px solid var(--dark); padding-top: 10px; margin-top: 6px; }
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:700px){
+  :root { --sidebar-w: 0px; }
+  .sidebar { transform: translateX(-220px); transition: transform 0.25s; }
+  .sidebar.open { transform: translateX(0); width: 220px; }
+  .main { margin-left: 0; }
+  .content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
+  .stats-grid { grid-template-columns: repeat(2,1fr); gap: 10px; }
+  .order-grid { grid-template-columns: 1fr; }
+  .mobile-menu-btn { display: flex !important; }
+}
+.mobile-menu-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  background: var(--light);
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+/* sidebar overlay for mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+.sidebar-overlay.open { display: block; }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--dark);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--success); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:500px){ .form-row { grid-template-columns: 1fr; } }
+
+.empty-state { text-align: center; padding: 40px; color: #ccc; }
+.empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
+.empty-state .es-text { font-size: 14px; }
+
+/* search bar */
+.search-bar { position: relative; }
+.search-bar input { padding-left: 36px; }
+.search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #ccc; font-size: 14px; pointer-events: none; }
+.pos-cat-tab {
+  white-space: nowrap; padding: 6px 14px; border-radius: 20px;
+  border: 1.5px solid #e0c8d0; background: white;
+  font-size: 12px; font-weight: 600; cursor: pointer; color: #888;
+  transition: all 0.15s; flex-shrink: 0; min-width: 44px;
+  font-family: 'DM Sans', sans-serif;
+}
+.pos-cat-tab.active { background: var(--dark); color: white; border-color: var(--dark); }
+
+.item-btn {
+  background: var(--light);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.item-btn:hover { border-color: var(--rose); background: #fff0f4; }
+.ib-icon { font-size: 24px; margin-right: 8px; }
+.ib-name { font-size: 13px; font-weight: 600; word-break: break-word; line-height: 1.3; color: var(--dark); }
+.ib-price { font-size: 14px; color: var(--rose); font-weight: 700; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sb-logo">DIY PARTY<br>WORKSHOP</div>
+    <div class="sb-sub">POS Систем</div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="switchTab('dashboard',this)">
+      <span class="nav-icon">📊</span> Хянах самбар
+    </button>
+    <button class="nav-item" onclick="switchTab('orders',this)">
+      <span class="nav-icon">🛒</span> Захиалга
+    </button>
+    <button class="nav-item" onclick="switchTab('calendar',this)">
+      <span class="nav-icon">📅</span> Хуанли
+    </button>
+    <button class="nav-item" onclick="switchTab('inventory',this)">
+      <span class="nav-icon">📦</span> Бараа
+    </button>
+    <button class="nav-item" onclick="switchTab('customers',this)">
+      <span class="nav-icon">👤</span> Хэрэглэгч
+    </button>
+    <button class="nav-item" onclick="switchTab('payments',this)">
+      <span class="nav-icon">💳</span> Төлбөр
+    </button>
+    <button class="nav-item" onclick="switchTab('online',this)">
+      <span class="nav-icon">🌐</span> Онлайн захиалга
+    </button>
+    <button class="nav-item" onclick="switchTab('packages',this)">
+      <span class="nav-icon">🎁</span> Packages
+    </button>
+    <button class="nav-item" onclick="switchTab('contract',this)">
+      <span class="nav-icon">📄</span> Гэрээ
+    </button>
+  </nav>
+  <div class="sidebar-footer">📞 99822534</div>
+</aside>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div>
+        <div class="topbar-title" id="topbar-title">Хянах самбар</div>
+        <div class="topbar-date" id="topbar-date"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="badge-stat">Өнөөдөр: <span id="today-orders">0</span> захиалга</div>
+      <div class="badge-stat">Орлого: <span id="today-income">0₮</span></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="tab-content active" id="tab-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card rose">
+          <div class="sc-label">Нийт захиалга</div>
+          <div class="sc-value" id="stat-total-orders">0</div>
+          <div class="sc-note">Бүх цаг үеийн</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="sc-label">Нийт орлого</div>
+          <div class="sc-value" id="stat-total-income">0₮</div>
+          <div class="sc-note">Баталгаажсан</div>
+        </div>
+        <div class="stat-card green">
+          <div class="sc-label">Идэвхтэй түрээс</div>
+          <div class="sc-value" id="stat-active">0</div>
+          <div class="sc-note">Одоогийн</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="sc-label">Хэрэглэгч</div>
+          <div class="sc-value" id="stat-customers">0</div>
+          <div class="sc-note">Бүртгэлтэй</div>
+        </div>
+      </div>
+
+      <div class="section-title">📋 Сүүлийн захиалгууд</div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table" id="dash-recent-table">
+            <thead><tr>
+              <th>#</th><th>Хэрэглэгч</th><th>Огноо</th><th>Дүн</th><th>Төлөв</th>
+            </tr></thead>
+            <tbody id="dash-recent-body">
+              <tr><td colspan="5"><div class="empty-state"><div class="es-icon">📭</div><div class="es-text">Одоогоор захиалга байхгүй</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ORDERS ===== -->
+    <div class="tab-content" id="tab-orders">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">🛒 Захиалга бүртгэх</div>
+        <button class="btn btn-outline btn-sm" onclick="switchTab('order-list', document.querySelector('.nav-item'))">📋 Жагсаалт</button>
+      </div>
+      <div class="order-grid">
+        <!-- Items -->
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+              <span>🎁 Бараа сонгох</span>
+              <div id="item-tab-btns" style="display:none;gap:6px">
+                <button class="btn btn-sm btn-primary" id="itab-rent" onclick="switchItemTab('rent')">🔄 Түрээс</button>
+                <button class="btn btn-sm btn-outline" id="itab-sell" onclick="switchItemTab('sell')">🛍️ Зарах</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- Loading spinner -->
+              <div id="items-loading" style="text-align:center;padding:32px 20px">
+                <div style="display:inline-block;position:relative;width:56px;height:56px;margin-bottom:12px">
+                  <svg viewBox="0 0 64 64" width="56" height="56" style="animation:pospin 1.5s linear infinite">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="#f0e0e8" stroke-width="6"/>
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="var(--rose)" stroke-width="6"
+                      stroke-dasharray="44 132" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+                  </svg>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px">⏳</div>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:3px">Бараанууд татаж байна...</div>
+                <div style="font-size:11px;color:#aaa">Түр хүлээнэ үү</div>
+              </div>
+              <style>@keyframes pospin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+              <!-- Search + Camera -->
+              <div id="items-search-row" style="display:none;gap:8px;margin-bottom:10px">
+                <div class="search-bar" style="flex:1">
+                  <span class="search-icon">🔍</span>
+                  <input class="input-field" id="item-search" placeholder="Бараа хайх..." oninput="filterItems()" style="padding-left:36px">
+                </div>
+                <button class="btn btn-sm" style="background:var(--dark);color:white;white-space:nowrap" onclick="openCameraModal()" title="Зургаар хайх">
+                  📷
+                </button>
+              </div>
+              <!-- Category scroll tabs -->
+              <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="items-grid" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">👤 Хэрэглэгчийн мэдээлэл</div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+              <div class="form-row">
+                <div>
+                  <label class="input-label">Нэр *</label>
+                  <input class="input-field" id="o-name" placeholder="Хэрэглэгчийн нэр">
+                </div>
+                <div>
+                  <label class="input-label">Утас *</label>
+                  <input class="input-field" id="o-phone" placeholder="99xxxxxx">
+                </div>
+              </div>
+              <div class="form-row">
+                <div>
+                  <label class="input-label">Авах огноо *</label>
+                  <input class="input-field" id="o-start" type="date">
+                </div>
+                <div>
+                  <label class="input-label">Буцаах огноо *</label>
+                  <input class="input-field" id="o-end" type="date">
+                </div>
+              </div>
+              <div>
+                <label class="input-label">Хаяг / Тэмдэглэл</label>
+                <input class="input-field" id="o-note" placeholder="Хаяг эсвэл тэмдэглэл...">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart -->
+        <div>
+          <div class="card" style="position:sticky;top:70px">
+            <div class="card-header">
+              🛒 Сагс
+              <button class="btn btn-outline btn-sm" onclick="clearCart()">Цэвэрлэх</button>
+            </div>
+            <div class="card-body">
+              <div id="cart-items">
+                <div class="empty-state" style="padding:20px">
+                  <div class="es-icon">🛒</div>
+                  <div class="es-text">Бараа сонгоно уу</div>
+                </div>
+              </div>
+              <div class="cart-total" id="cart-total" style="display:none">
+                <div class="ct-row"><span>Нийт бараа</span><span id="ct-subtotal">0₮</span></div>
+                <div class="ct-row" id="ct-deposit-row"><span>Барьцаа (50%)</span><span id="ct-deposit">0₮</span></div>
+                <div class="ct-row total"><span>Нийт дүн</span><span id="ct-total">0₮</span></div>
+              </div>
+              <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+                <div>
+                  <label class="input-label">Төлбөрийн хэлбэр</label>
+                  <select class="input-field" id="o-payment">
+                    <option value="cash">💵 Бэлэн мөнгө</option>
+                    <option value="transfer">📱 Шилжүүлэг</option>
+                    <option value="qpay">📲 QPay</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="submitOrder()">✅ Захиалга баталгаажуулах</button>
+                <button class="btn btn-outline btn-full" onclick="showInvoice()">🧾 Нэхэмжлэл</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ORDER LIST ===== -->
+    <div class="tab-content" id="tab-order-list">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">📋 Захиалгын жагсаалт</div>
+        <button class="btn btn-primary btn-sm" onclick="switchTab('orders',document.querySelectorAll('.nav-item')[1])">+ Шинэ захиалга</button>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="search-bar" style="flex:1;min-width:180px">
+            <span class="search-icon">🔍</span>
+            <input class="input-field" id="order-search" placeholder="Нэр, утасаар хайх..." oninput="filterOrders()">
+          </div>
+          <select class="input-field" style="width:160px" id="order-filter" onchange="filterOrders()">
+            <option value="">Бүх төлөв</option>
+            <option value="pending">Хүлээгдэж буй</option>
+            <option value="active">Идэвхтэй</option>
+            <option value="done">Дууссан</option>
+            <option value="cancelled">Цуцалсан</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>#</th><th>Хэрэглэгч</th><th>Утас</th><th>Авах огноо</th><th>Буцаах</th><th>Дүн</th><th>Төлөв</th><th>Үйлдэл</th>
+            </tr></thead>
+            <tbody id="order-list-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CALENDAR ===== -->
+    <div class="tab-content" id="tab-calendar">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">📅 Хуанли</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="changeMonth(-1)">‹ Өмнөх</button>
+          <button class="btn btn-outline btn-sm" onclick="changeMonth(1)">Дараах ›</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header" id="cal-month-title"></div>
+        <div class="card-body">
+          <div class="cal-grid">
+            <div class="cal-day-name">Да</div>
+            <div class="cal-day-name">Мя</div>
+            <div class="cal-day-name">Лх</div>
+            <div class="cal-day-name">Пү</div>
+            <div class="cal-day-name">Ба</div>
+            <div class="cal-day-name">Бя</div>
+            <div class="cal-day-name">Ня</div>
+          </div>
+          <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header">📋 Сонгосон өдрийн захиалгууд</div>
+        <div class="card-body" id="cal-day-orders">
+          <div class="empty-state"><div class="es-icon">📅</div><div class="es-text">Өдөр сонгоно уу</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== INVENTORY ===== -->
+    <div class="tab-content" id="tab-inventory">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" style="margin:0">📦 Бараа удирдлага</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" style="background:#0f9d58;color:white;display:flex;align-items:center;gap:6px" onclick="openModal('sheets-modal')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            Google Sheets
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('inv-modal')">+ Бараа нэмэх</button>
+        </div>
+      </div>
+      <div id="sheets-status" style="display:none;margin-bottom:12px"></div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>Нэр</th><th>Ангилал</th><th>Төрөл</th><th>Тоо</th><th>Үнэ</th><th>Өнгө/Хэмжээ</th><th>Төлөв</th><th>Үйлдэл</th>
+            </tr></thead>
+            <tbody id="inv-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CUSTOMERS ===== -->
+    <div class="tab-content" id="tab-customers">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">👤 Хэрэглэгчид</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('cust-modal')">+ Нэмэх</button>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input class="input-field" id="cust-search" placeholder="Нэр, утасаар хайх..." oninput="filterCustomers()">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>Нэр</th><th>Утас</th><th>Нийт захиалга</th><th>Нийт зарцуулсан</th><th>Сүүлийн захиалга</th><th>Үйлдэл</th>
+            </tr></thead>
+            <tbody id="cust-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAYMENTS ===== -->
+    <div class="tab-content" id="tab-payments">
+      <div class="section-title">💳 Төлбөрийн түүх</div>
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card rose">
+          <div class="sc-label">Нийт орлого</div>
+          <div class="sc-value" id="pay-total">0₮</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="sc-label">Бэлэн мөнгө</div>
+          <div class="sc-value" id="pay-cash">0₮</div>
+        </div>
+        <div class="stat-card green">
+          <div class="sc-label">Шилжүүлэг</div>
+          <div class="sc-value" id="pay-transfer">0₮</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="sc-label">QPay</div>
+          <div class="sc-value" id="pay-qpay">0₮</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>Огноо</th><th>Хэрэглэгч</th><th>Дүн</th><th>Барьцаа</th><th>Хэлбэр</th><th>Захиалга #</th>
+            </tr></thead>
+            <tbody id="pay-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ONLINE ORDERS ===== -->
+    <div class="tab-content" id="tab-online">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" style="margin:0">🌐 Онлайн захиалга</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-outline" onclick="copyOrderLink()">🔗 Линк хуулах</button>
+          <button class="btn btn-sm btn-primary" onclick="renderOnlineOrders()">🔄 Шинэчлэх</button>
+        </div>
+      </div>
+
+      <!-- Link share card -->
+      <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,var(--dark),#3d1226)">
+        <div class="card-body" style="padding:20px">
+          <div style="color:white;font-size:13px;opacity:0.7;margin-bottom:6px">📱 FB/IG-д хуваалцах линк</div>
+          <div style="color:white;font-weight:700;font-size:15px;margin-bottom:12px">Захиалгын хуудас</div>
+          <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px;font-size:12px;color:rgba(255,255,255,0.8);word-break:break-all" id="order-link-display">
+            https://uyansofts.github.io/diy-party-pos/order.html
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-sm" style="background:var(--rose);color:white;flex:1" onclick="copyOrderLink()">📋 Хуулах</button>
+            <button class="btn btn-sm" style="background:#1877f2;color:white;flex:1" onclick="shareToFB()">f Facebook</button>
+            <button class="btn btn-sm" style="background:linear-gradient(45deg,#f09433,#cc2366);color:white;flex:1" onclick="shareToIG()">📷 Instagram</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Incoming online orders -->
+      <div class="section-title">📬 Ирсэн онлайн захиалгууд</div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>#</th><th>Хэрэглэгч</th><th>Утас</th><th>Огноо</th><th>Дүн</th><th>Төлөв</th><th>Үйлдэл</th>
+            </tr></thead>
+            <tbody id="online-orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PACKAGES ===== -->
+    <div class="tab-content" id="tab-packages">
+      <div class="section-title">🎁 Түрээсийн Package</div>
+      <p style="font-size:13px;color:#999;margin-bottom:16px">Хэрэглэгчид санал болгох package-ууд</p>
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- Mini -->
+        <div class="card" style="border-left:4px solid #a8d8a8;overflow:hidden">
+          <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:#166534;text-transform:uppercase">Жижиг баяр · Төрсөн өдөр</div>
+              <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--dark);margin-top:2px">🌸 Mini Package</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:#166534">150,000₮</div>
+          </div>
+          <div class="card-body" style="padding:14px 18px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Угтах самбар (1 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Бөмбөлөг чимэглэл (жижиг гар)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Цэцгийн мөр 90x20см (1 ширхэг)</div>
+            </div>
+            <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="copyPackageText('mini')">📋 Зар хуулах</button>
+          </div>
+        </div>
+
+        <!-- Standard -->
+        <div class="card" style="border-left:4px solid var(--rose);border:2px solid var(--rose);overflow:hidden">
+          <div style="background:linear-gradient(135deg,#fff0f4,#fce7ef);padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:var(--rose-dark);text-transform:uppercase">🔥 Хамгийн алдартай</div>
+              <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--dark);margin-top:2px">✨ Standard Package</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:var(--rose)">280,000₮</div>
+          </div>
+          <div class="card-body" style="padding:14px 18px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Угтах самбар (1 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Бөмбөлөг чимэглэл (том гар)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Цэцгийн мөр 90x20см (2 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Нуман дэвсгэр 180x80см</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--rose);font-weight:700">✓</span> Гэрэлт тоо 50см (2 ширхэг)</div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="copyPackageText('standard')">📋 Зар хуулах</button>
+          </div>
+        </div>
+
+        <!-- Premium -->
+        <div class="card" style="border-left:4px solid var(--gold);overflow:hidden">
+          <div style="background:linear-gradient(135deg,#fffbf0,#fef9e7);padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:10px;letter-spacing:2px;color:#92400e;text-transform:uppercase">Хурим · Онцгой үйл ажиллагаа</div>
+              <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--dark);margin-top:2px">👑 Premium Package</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:var(--gold)">480,000₮</div>
+          </div>
+          <div class="card-body" style="padding:14px 18px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Угтах самбар (1 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Бөмбөлөг чимэглэл (том гар)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Том цэцгийн чимэглэл 100x70см</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Цэцгийн мөр 90x20см (3 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Нуман дэвсгэр 200x100см</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Гэрэлт тоо 1м (2 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> Sequin wall panel (4 ширхэг)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="color:var(--gold);font-weight:700">✓</span> "Миний анхны жил" самбар</div>
+            </div>
+            <button class="btn btn-gold btn-sm" style="margin-top:12px" onclick="copyPackageText('premium')">📋 Зар хуулах</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== CONTRACT ===== -->
+    <div class="tab-content" id="tab-contract">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" style="margin:0">📄 Түрээсийн Гэрээ</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="copyContract()">📋 Хуулах</button>
+          <button class="btn btn-primary btn-sm" onclick="printContract()">🖨️ Хэвлэх</button>
+        </div>
+      </div>
+
+      <!-- Customer fill form -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">✏️ Гэрээний мэдээлэл оруулах</div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div class="form-row">
+            <div><label class="input-label">Хэрэглэгчийн нэр</label><input class="input-field" id="con-name" placeholder="Бүтэн нэр"></div>
+            <div><label class="input-label">Утас</label><input class="input-field" id="con-phone" placeholder="99xxxxxx"></div>
+          </div>
+          <div class="form-row">
+            <div><label class="input-label">Авах огноо</label><input class="input-field" id="con-start" type="date"></div>
+            <div><label class="input-label">Буцаах огноо</label><input class="input-field" id="con-end" type="date"></div>
+          </div>
+          <div><label class="input-label">Түрээслэсэн зүйлс</label><textarea class="input-field" id="con-items" rows="3" placeholder="Жишээ: Нуман дэвсгэр 180x80 — 1ш, Бөмбөлөг гар — 1ш"></textarea></div>
+          <div class="form-row">
+            <div><label class="input-label">Нийт дүн</label><input class="input-field" id="con-total" placeholder="0₮"></div>
+            <div><label class="input-label">Барьцаа (50%)</label><input class="input-field" id="con-deposit" placeholder="0₮"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contract preview -->
+      <div class="card">
+        <div class="card-header">👁️ Гэрээний урьдчилсан харагдац</div>
+        <div class="card-body" id="contract-preview" style="font-family:'Courier New',monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;background:#fdf6f0;border-radius:8px;padding:14px"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- Inventory Modal -->
+<div class="modal-overlay" id="inv-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📦 Бараа нэмэх / засах</span>
+      <button class="modal-close" onclick="closeModal('inv-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="inv-edit-id">
+      <div>
+        <label class="input-label">Төрөл *</label>
+        <div style="display:flex;gap:10px">
+          <label style="flex:1;cursor:pointer">
+            <input type="radio" name="inv-type" id="inv-type-rent" value="rent" checked style="display:none">
+            <div class="type-btn" id="type-btn-rent" onclick="selectType('rent')" style="border:2px solid var(--rose);background:#fff0f4;border-radius:9px;padding:10px;text-align:center;font-size:13px;font-weight:700;color:var(--rose)">🔄 Түрээс</div>
+          </label>
+          <label style="flex:1;cursor:pointer">
+            <input type="radio" name="inv-type" id="inv-type-sell" value="sell" style="display:none">
+            <div class="type-btn" id="type-btn-sell" onclick="selectType('sell')" style="border:2px solid #e0c8d0;background:white;border-radius:9px;padding:10px;text-align:center;font-size:13px;font-weight:600;color:#aaa">🛍️ Зарах</div>
+          </label>
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label class="input-label">Нэр *</label><input class="input-field" id="inv-name" placeholder="Бараа нэр"></div>
+        <div><label class="input-label">Ангилал</label>
+          <select class="input-field" id="inv-cat">
+            <optgroup label="🔄 Түрээс">
+              <option>Бөмбөлөг</option><option>Цэцэг</option><option>Дэвсгэр</option>
+              <option>Гэрэлт тоо</option><option>Самбар</option><option>Sequin</option>
+            </optgroup>
+            <optgroup label="🛍️ Зарах">
+              <option>Малгай</option><option>Лаа</option><option>Шаар</option>
+              <option>Баяр наадмын хэрэгсэл</option><option>Бусад</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label class="input-label">Үлдэгдэл тоо</label><input class="input-field" id="inv-qty" type="number" value="1" min="0"></div>
+        <div><label class="input-label" id="inv-price-label">Үнэ (1 өдөр) ₮</label><input class="input-field" id="inv-price" type="number" placeholder="0"></div>
+      </div>
+      <div><label class="input-label">Тэмдэглэл</label><input class="input-field" id="inv-note" placeholder="Хэмжээ, өнгө..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('inv-modal')">Болих</button>
+      <button class="btn btn-primary" onclick="saveInventory()">💾 Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="cust-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">👤 Хэрэглэгч нэмэх</span>
+      <button class="modal-close" onclick="closeModal('cust-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cust-edit-id">
+      <div class="form-row">
+        <div><label class="input-label">Нэр *</label><input class="input-field" id="cust-name" placeholder="Бүтэн нэр"></div>
+        <div><label class="input-label">Утас *</label><input class="input-field" id="cust-phone" placeholder="99xxxxxx"></div>
+      </div>
+      <div><label class="input-label">Хаяг</label><input class="input-field" id="cust-addr" placeholder="Хаяг..."></div>
+      <div><label class="input-label">Тэмдэглэл</label><input class="input-field" id="cust-note" placeholder="Тэмдэглэл..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('cust-modal')">Болих</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">💾 Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal-overlay" id="invoice-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title">🧾 Нэхэмжлэл</span>
+      <button class="modal-close" onclick="closeModal('invoice-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="invoice-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('invoice-modal')">Хаах</button>
+      <button class="btn btn-outline" onclick="printInvoice()">📤 Хуваалцах</button>
+      <button class="btn btn-primary" onclick="doPrint()">🖨️ Хэвлэх</button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Sheets Modal -->
+<div class="modal-overlay" id="sheets-modal">
+  <div class="modal">
+    <div class="modal-header" style="background:#0f9d58">
+      <span class="modal-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:6px"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Google Sheets холболт
+      </span>
+      <button class="modal-close" onclick="closeModal('sheets-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;font-size:13px;color:#166534">
+        ✅ <strong>Apps Script URL тохируулагдсан!</strong><br>
+        "Татах" дарахад бараануудыг шууд татна.
+      </div>
+      <div>
+        <label class="input-label">Apps Script URL</label>
+        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbwJdTZd21WNSH8-uQ8x_Rtli4ouNJVjq9jEmY6-Yar7jVpkeC7pmtT4JDb__I3MhRIj/exec">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('sheets-modal')">Болих</button>
+      <button class="btn" style="background:#0f9d58;color:white" onclick="syncFromSheets()">
+        🔄 Татах
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Camera / Image Search Modal -->
+<div class="modal-overlay" id="camera-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header" style="background:var(--dark)">
+      <span class="modal-title">📷 Зургаар бараа хайх</span>
+      <button class="modal-close" onclick="closeCameraModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Camera preview -->
+      <div id="camera-area" style="display:none">
+        <video id="camera-video" style="width:100%;border-radius:10px;background:#000" autoplay playsinline></video>
+        <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="capturePhoto()">📸 Зураг авах</button>
+      </div>
+      <!-- Photo preview -->
+      <div id="photo-area" style="display:none">
+        <img id="photo-preview" style="width:100%;border-radius:10px;max-height:300px;object-fit:cover">
+        <div id="ai-result" style="margin-top:12px"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-outline" style="flex:1" onclick="retakePhoto()">🔄 Дахин авах</button>
+          <button class="btn btn-primary" style="flex:1" onclick="recognizeItem()">🤖 AI таних</button>
+        </div>
+      </div>
+      <!-- Upload option -->
+      <div id="upload-area">
+        <div style="text-align:center;padding:20px;border:2px dashed #e0c8d0;border-radius:12px;cursor:pointer" onclick="document.getElementById('img-upload').click()">
+          <div style="font-size:40px">📁</div>
+          <div style="font-size:13px;color:#aaa;margin-top:8px">Зураг сонгох</div>
+        </div>
+        <input type="file" id="img-upload" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
+        <button class="btn btn-outline btn-full" style="margin-top:10px" onclick="startCamera()">📷 Камер нээх</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal-overlay" id="img-preview-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header" style="background:var(--dark)">
+      <span class="modal-title" id="img-preview-title">Зураг</span>
+      <button class="modal-close" onclick="closeModal('img-preview-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:12px">
+      <img id="img-preview-big" style="width:100%;border-radius:10px;max-height:400px;object-fit:contain">
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE ============
+let state = {
+  orders: [],
+  inventory: [],
+  customers: [],
+  cart: [],
+  calMonth: new Date().getMonth(),
+  calYear: new Date().getFullYear(),
+  selectedDay: null,
+};
+
+// Load from localStorage
+function loadState() {
+  try {
+    const saved = localStorage.getItem('diy_pos_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state.orders = parsed.orders || [];
+      state.inventory = parsed.inventory || [];
+      state.customers = parsed.customers || [];
+    }
+  } catch(e) {}
+}
+function saveState() {
+  try {
+    localStorage.setItem('diy_pos_state', JSON.stringify({
+      orders: state.orders,
+      inventory: state.inventory,
+      customers: state.customers,
+    }));
+  } catch(e) {}
+}
+
+// ============ DEFAULT INVENTORY ============
+const defaultInventory = [
+  {id:1,name:'Угтах самбар',cat:'Самбар',type:'rent',qty:3,price:30000,note:'Хиймэл цаасан',status:'available'},
+  {id:2,name:'Бөмбөлөг гар (жижиг)',cat:'Бөмбөлөг',type:'rent',qty:5,price:40000,note:'Ягаан/Цагаан',status:'available'},
+  {id:3,name:'Бөмбөлөг гар (том)',cat:'Бөмбөлөг',type:'rent',qty:3,price:70000,note:'Олон өнгийн',status:'available'},
+  {id:4,name:'Цэцгийн мөр 90x20см',cat:'Цэцэг',type:'rent',qty:8,price:25000,note:'Хиймэл',status:'available'},
+  {id:5,name:'Том цэцэг 50x70см',cat:'Цэцэг',type:'rent',qty:4,price:35000,note:'',status:'available'},
+  {id:6,name:'Том цэцэг 100x70см',cat:'Цэцэг',type:'rent',qty:2,price:55000,note:'',status:'available'},
+  {id:7,name:'Нуман дэвсгэр 180x80',cat:'Дэвсгэр',type:'rent',qty:3,price:40000,note:'',status:'available'},
+  {id:8,name:'Нуман дэвсгэр 200x100',cat:'Дэвсгэр',type:'rent',qty:2,price:60000,note:'',status:'available'},
+  {id:9,name:'Нуман дэвсгэр 220x120',cat:'Дэвсгэр',type:'rent',qty:1,price:80000,note:'',status:'available'},
+  {id:10,name:'Гэрэлт тоо 50см',cat:'Гэрэлт тоо',type:'rent',qty:10,price:15000,note:'0-9',status:'available'},
+  {id:11,name:'Гэрэлт тоо 1м',cat:'Гэрэлт тоо',type:'rent',qty:10,price:30000,note:'0-9',status:'available'},
+  {id:12,name:'Sequin wall panel',cat:'Sequin',type:'rent',qty:20,price:10000,note:'Олон өнгө',status:'available'},
+  {id:13,name:'"Миний анхны жил" самбар',cat:'Самбар',type:'rent',qty:2,price:35000,note:'',status:'available'},
+  {id:14,name:'Неон бичиг',cat:'Бусад',type:'rent',qty:2,price:50000,note:'Happy Birthday',status:'available'},
+  // Зарах бараа
+  {id:15,name:'Төрсөн өдрийн малгай',cat:'Малгай',type:'sell',qty:50,price:3000,note:'Олон өнгө',status:'available'},
+  {id:16,name:'Конус малгай (10ш)',cat:'Малгай',type:'sell',qty:30,price:5000,note:'',status:'available'},
+  {id:17,name:'Лаа (12ш)',cat:'Лаа',type:'sell',qty:40,price:4000,note:'Тоонтой',status:'available'},
+  {id:18,name:'Тортны лаа (нэр)',cat:'Лаа',type:'sell',qty:20,price:8000,note:'Захиалгаар',status:'available'},
+  {id:19,name:'Шаар (10ш)',cat:'Шаар',type:'sell',qty:60,price:3500,note:'Олон өнгө',status:'available'},
+  {id:20,name:'Металл шаар (5ш)',cat:'Шаар',type:'sell',qty:25,price:6000,note:'Алт/Мөнгө',status:'available'},
+  {id:21,name:'Баяр наадмын туг',cat:'Баяр наадмын хэрэгсэл',type:'sell',qty:30,price:5000,note:'',status:'available'},
+  {id:22,name:'Confetti буудагч',cat:'Баяр наадмын хэрэгсэл',type:'sell',qty:15,price:7000,note:'',status:'available'},
+];
+
+// ============ HELPERS ============
+function fmtMoney(n) {
+  return n.toLocaleString('mn-MN') + '₮';
+}
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('mn-MN');
+}
+function genId() { return Date.now() + Math.random().toString(36).slice(2,6); }
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ============ TABS ============
+function switchTab(tabId, btn) {
+  // close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const el = document.getElementById('tab-' + tabId);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const titles = {
+    dashboard:'Хянах самбар', orders:'Захиалга бүртгэх',
+    'order-list':'Захиалгын жагсаалт', calendar:'Хуанли',
+    inventory:'Бараа удирдлага', customers:'Хэрэглэгчид',
+    payments:'Төлбөрийн түүх', online:'Онлайн захиалга',
+    packages:'Packages', contract:'Түрээсийн Гэрээ'
+  };
+  document.getElementById('topbar-title').textContent = titles[tabId] || '';
+  if (tabId === 'dashboard') updateDashboard();
+  if (tabId === 'order-list') renderOrderList();
+  if (tabId === 'calendar') renderCalendar();
+  if (tabId === 'inventory') renderInventory();
+  if (tabId === 'customers') renderCustomers();
+  if (tabId === 'payments') renderPayments();
+  if (tabId === 'online') renderOnlineOrders();
+  if (tabId === 'contract') renderContractPreview();
+}
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
+}
+
+// ============ ITEM SEARCH ============
+let itemTab = 'rent';
+let activePOSCat = 'Бүгд';
+
+function renderPosCatTabs() {
+  const scroll = document.getElementById('pos-cat-scroll');
+  if (!scroll) return;
+  const cats = ['Бүгд', ...new Set(
+    state.inventory.filter(i => (i.type||'rent') === itemTab).map(i => i.cat).filter(Boolean)
+  )];
+  scroll.innerHTML = cats.map(c =>
+    `<button class="pos-cat-tab${c===activePOSCat?' active':''}" data-cat="${c}">${c}</button>`
+  ).join('');
+  // Event listener-ийг шинэчлэнэ
+  scroll.onclick = function(e) {
+    const btn = e.target.closest('.pos-cat-tab');
+    if (!btn) return;
+    activePOSCat = btn.dataset.cat;
+    renderPosCatTabs();
+    filterItems();
+  };
+}
+
+function selectPOSCat(c) {
+  activePOSCat = c;
+  renderPosCatTabs();
+  filterItems();
+}
+
+function filterItems() {
+  const q = (document.getElementById('item-search')?.value || '').toLowerCase();
+  const icons = {
+    'Бөмбөлөг':'🎈','Цэцэг':'💐','Дэвсгэр':'🎪','Гэрэлт тоо':'🔢','Самбар':'🪧','Sequin':'✨',
+    'Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Бусад':'🎁'
+  };
+  const filtered = state.inventory.filter(i =>
+    (i.type||'rent') === itemTab &&
+    (activePOSCat === 'Бүгд' || i.cat === activePOSCat) &&
+    (!q || i.name.toLowerCase().includes(q) || (i.cat||'').toLowerCase().includes(q) || (i.color||'').toLowerCase().includes(q))
+  );
+  const grid = document.getElementById('items-grid');
+  if (!grid) return;
+  grid.innerHTML = filtered.map(item => `
+    <button class="item-btn" onclick="addToCart(${item.id})">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%">
+        <div style="flex:1;min-width:0">
+          <div class="ib-name">${item.name}</div>
+          ${item.color||item.size ? `<div style="font-size:10px;color:#aaa;margin-top:2px">${[item.color,item.size].filter(Boolean).join(' / ')}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+            <div class="ib-price">${fmtMoney(item.price||0)}</div>
+            <div style="font-size:10px;color:#bbb">×${item.qty||0}</div>
+          </div>
+        </div>
+        <div style="width:60px;height:60px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#f5eef5;display:flex;align-items:center;justify-content:center">
+          ${item.imageUrl
+          
+            ? `<img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=\\'font-size:22px\\'>${icons[item.cat]||'🎪'}</span>'">`
+            : `<span style="font-size:22px">${icons[item.cat]||'🎀'}</span>`}
+        </div>
+      </div>
+    </button>
+  `).join('') || `<div class="empty-state" style="grid-column:span 2;padding:20px"><div class="es-icon">🔍</div><div class="es-text">${q?`"${q}" олдсонгүй`:'Бараа байхгүй'}</div></div>`;
+}
+
+function renderItemsGrid() { renderPosCatTabs(); filterItems(); }
+function switchItemTab(t) {
+  itemTab = t;
+  activePOSCat = 'Бүгд';
+  document.getElementById('itab-rent').className = 'btn btn-sm ' + (t==='rent'?'btn-primary':'btn-outline');
+  document.getElementById('itab-sell').className = 'btn btn-sm ' + (t==='sell'?'btn-gold':'btn-outline');
+  renderPosCatTabs();
+  filterItems();
+}
+
+// ============ CAMERA & AI ============
+let cameraStream = null;
+let capturedImageData = null;
+
+function openCameraModal() {
+  document.getElementById('upload-area').style.display = 'block';
+  document.getElementById('camera-area').style.display = 'none';
+  document.getElementById('photo-area').style.display = 'none';
+  openModal('camera-modal');
+}
+
+function closeCameraModal() {
+  stopCamera();
+  closeModal('camera-modal');
+}
+
+async function startCamera() {
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    document.getElementById('camera-video').srcObject = cameraStream;
+    document.getElementById('upload-area').style.display = 'none';
+    document.getElementById('camera-area').style.display = 'block';
+    document.getElementById('photo-area').style.display = 'none';
+  } catch(e) {
+    showToast('⚠️ Камер нээхэд алдаа гарлаа');
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById('camera-video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  capturedImageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  document.getElementById('photo-preview').src = 'data:image/jpeg;base64,' + capturedImageData;
+  stopCamera();
+  document.getElementById('camera-area').style.display = 'none';
+  document.getElementById('photo-area').style.display = 'block';
+  document.getElementById('ai-result').innerHTML = '';
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    capturedImageData = e.target.result.split(',')[1];
+    document.getElementById('photo-preview').src = e.target.result;
+    document.getElementById('upload-area').style.display = 'none';
+    document.getElementById('photo-area').style.display = 'block';
+    document.getElementById('ai-result').innerHTML = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function retakePhoto() {
+  capturedImageData = null;
+  document.getElementById('upload-area').style.display = 'block';
+  document.getElementById('photo-area').style.display = 'none';
+  document.getElementById('img-upload').value = '';
+}
+
+async function recognizeItem() {
+  if (!capturedImageData) return;
+  const resultEl = document.getElementById('ai-result');
+  resultEl.innerHTML = `<div style="text-align:center;padding:16px;color:#aaa">🤖 AI таниж байна...</div>`;
+
+  const itemList = state.inventory.map(i => `- ${i.name} (${i.cat}, ${i.color||''} ${i.size||''})`).join('\n');
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/jpeg', data: capturedImageData }
+            },
+            {
+              type: 'text',
+              text: `Энэ зургийг харж доорх бараануудын жагсаалттай харьцуул. Зурган дээрх бараатай хамгийн ойр тохирох барааг ол.
+
+Бараануудын жагсаалт:
+${itemList}
+
+Хариугаа ЗӨВХӨН JSON форматаар өг, өөр юу ч бичихгүй:
+{"matches": [{"name": "барааны яг нэр", "confidence": 90, "reason": "яагаад тохирч байгаа"}]}`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || '{}';
+    let parsed;
+    try { parsed = JSON.parse(text.replace(/```json|```/g,'')); } catch(e) { parsed = {matches:[]}; }
+
+    const matches = parsed.matches || [];
+    if (!matches.length) {
+      resultEl.innerHTML = `<div style="background:#fef2f2;border-radius:10px;padding:12px;font-size:13px;color:#991b1b">❌ Тохирох бараа олдсонгүй</div>`;
+      return;
+    }
+
+    resultEl.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:#888;margin-bottom:8px">🤖 AI таньсан бараанууд:</div>
+      ${matches.map(m => {
+        const item = state.inventory.find(i => i.name === m.name);
+        return `<div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:2px solid transparent" onclick="selectRecognizedItem(${item?.id})" onmouseover="this.style.borderColor='var(--rose)'" onmouseout="this.style.borderColor='transparent'">
+          <div>
+            <div style="font-weight:700;font-size:14px">${m.name}</div>
+            <div style="font-size:11px;color:#aaa;margin-top:2px">${m.reason}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="color:var(--rose);font-weight:700">${item ? fmtMoney(item.price) : ''}</div>
+            <div style="font-size:11px;color:${m.confidence>80?'var(--success)':'var(--warn)'}">%${m.confidence}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  } catch(e) {
+    resultEl.innerHTML = `<div style="background:#fef2f2;border-radius:10px;padding:12px;font-size:13px;color:#991b1b">❌ AI алдаа: ${e.message}</div>`;
+  }
+}
+
+function selectRecognizedItem(itemId) {
+  if (!itemId) return;
+  const item = state.inventory.find(i => i.id === itemId);
+  if (!item) return;
+  closeCameraModal();
+  // Switch to correct tab
+  if ((item.type||'rent') !== itemTab) switchItemTab(item.type||'rent');
+  addToCart(itemId);
+  showToast(`✅ "${item.name}" сагсанд нэмэгдлээ`, 'success');
+}
+
+function showItemImage(url, name) {
+  document.getElementById('img-preview-title').textContent = name;
+  document.getElementById('img-preview-big').src = url;
+  openModal('img-preview-modal');
+}
+
+// ============ CART ============
+function addToCart(itemId) {
+  const item = state.inventory.find(i => i.id === itemId);
+  if (!item) return;
+  const existing = state.cart.find(c => c.id === itemId);
+  const stock = item.qty || 0;
+  if (existing) {
+    if (existing.qty >= stock) {
+      showToast(`⚠️ Үлдэгдэл хүрэлцэхгүй байна (${stock}ш)`);
+      return;
+    }
+    existing.qty++;
+  } else {
+    if (stock < 1) {
+      showToast('⚠️ Энэ бараа дууссан байна');
+      return;
+    }
+    state.cart.push({id: item.id, name: item.name, price: item.price, qty: 1, type: item.type||'rent', maxQty: stock});
+  }
+  renderCart();
+}
+function updateCartQty(id, delta) {
+  const item = state.cart.find(c => c.id === id);
+  if (!item) return;
+  const invItem = state.inventory.find(i => i.id === id);
+  const stock = invItem ? (invItem.qty || 0) : (item.maxQty || 9999);
+  if (delta > 0 && item.qty >= stock) {
+    showToast(`⚠️ Үлдэгдэл хүрэлцэхгүй байна (${stock}ш)`);
+    return;
+  }
+  item.qty += delta;
+  if (item.qty <= 0) state.cart = state.cart.filter(c => c.id !== id);
+  renderCart();
+}
+function removeFromCart(id) {
+  state.cart = state.cart.filter(c => c.id !== id);
+  renderCart();
+}
+function clearCart() {
+  state.cart = [];
+  renderCart();
+}
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  const totalEl = document.getElementById('cart-total');
+  if (state.cart.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="padding:20px"><div class="es-icon">🛒</div><div class="es-text">Бараа сонгоно уу</div></div>`;
+    totalEl.style.display = 'none';
+    return;
+  }
+  container.innerHTML = state.cart.map(c => {
+    const invItem = state.inventory.find(i => i.id === c.id);
+    const stock = invItem ? (invItem.qty || 0) : (c.maxQty || 9999);
+    const atMax = c.qty >= stock;
+    const typeLabel = c.type === 'sell' ? '<span style="font-size:9px;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;margin-left:4px">Зарах</span>' : '<span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">Түрээс</span>';
+    return `
+    <div class="cart-item">
+      <div class="ci-name">${c.name}${typeLabel}<div style="font-size:10px;color:#bbb;margin-top:1px">Үлдэгдэл: ${stock}ш</div></div>
+      <div class="ci-qty">
+        <button class="qty-btn" onclick="updateCartQty(${c.id},-1)">−</button>
+        <span class="qty-num">${c.qty}</span>
+        <button class="qty-btn" onclick="updateCartQty(${c.id},1)" ${atMax?'style="opacity:0.3;cursor:not-allowed"':''}>+</button>
+      </div>
+      <div class="ci-total">${fmtMoney(c.price * c.qty)}</div>
+      <button class="ci-del" onclick="removeFromCart(${c.id})">×</button>
+    </div>`;
+  }).join('');
+  const rentTotal = state.cart.filter(c=>c.type!=='sell').reduce((s,c)=>s+c.price*c.qty,0);
+  const sellTotal = state.cart.filter(c=>c.type==='sell').reduce((s,c)=>s+c.price*c.qty,0);
+  const deposit = Math.round(rentTotal * 0.5);
+  const grandTotal = rentTotal + deposit + sellTotal;
+  document.getElementById('ct-subtotal').textContent = fmtMoney(rentTotal + sellTotal);
+  document.getElementById('ct-deposit').textContent = deposit > 0 ? fmtMoney(deposit) : '—';
+  document.getElementById('ct-total').textContent = fmtMoney(grandTotal);
+  const depositRow = document.getElementById('ct-deposit-row');
+  if (depositRow) depositRow.style.display = rentTotal > 0 ? 'flex' : 'none';
+  totalEl.style.display = 'block';
+}
+
+// ============ SUBMIT ORDER ============
+function submitOrder() {
+  const name = document.getElementById('o-name').value.trim();
+  const phone = document.getElementById('o-phone').value.trim();
+  const start = document.getElementById('o-start').value;
+  const end = document.getElementById('o-end').value;
+  if (!name || !phone) { showToast('⚠️ Нэр, утас оруулна уу'); return; }
+  if (state.cart.length === 0) { showToast('⚠️ Бараа сонгоно уу'); return; }
+  if (!start) { showToast('⚠️ Авах огноо оруулна уу'); return; }
+
+  const total = state.cart.reduce((s,c) => s + c.price*c.qty, 0);
+  const order = {
+    id: genId(),
+    num: state.orders.length + 1,
+    name, phone,
+    note: document.getElementById('o-note').value,
+    start, end,
+    payment: document.getElementById('o-payment').value,
+    items: [...state.cart],
+    total,
+    deposit: Math.round(total * 0.5),
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  state.orders.unshift(order);
+
+  // Бараа тооноос хасах
+  state.cart.forEach(cartItem => {
+    const invItem = state.inventory.find(i => i.id === cartItem.id);
+    if (invItem) {
+      invItem.qty = Math.max(0, (invItem.qty || 0) - cartItem.qty);
+      // Sheet-д шинэчлэх
+      saveToSheet({
+        name: invItem.name,
+        cat: invItem.cat,
+        qty: invItem.qty,
+        price: invItem.price,
+        type: invItem.type || 'rent',
+        note: invItem.note || '',
+      }, invItem.id);
+    }
+  });
+
+  // auto-add customer
+  if (!state.customers.find(c => c.phone === phone)) {
+    state.customers.push({id: genId(), name, phone, addr:'', note:'', createdAt: new Date().toISOString()});
+  }
+
+  saveState();
+  renderItemsGrid();
+  clearCart();
+  ['o-name','o-phone','o-note','o-start','o-end'].forEach(id => document.getElementById(id).value = '');
+  updateTopbar();
+  showToast('✅ Захиалга амжилттай бүртгэгдлээ', 'success');
+}
+
+// ============ INVOICE ============
+function doPrint() {
+  const content = document.getElementById('invoice-content')?.innerHTML || '';
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body{font-family:sans-serif;padding:20px;max-width:360px;margin:0 auto;font-size:13px}
+  .inv-logo{font-size:20px;font-weight:900;color:#e8527a}
+  .inv-sub{font-size:10px;letter-spacing:2px;color:#aaa;text-transform:uppercase}
+  .inv-divider{border:none;border-top:1px solid #eee;margin:10px 0}
+  .inv-row{display:flex;justify-content:space-between;padding:4px 0}
+  .inv-total{display:flex;justify-content:space-between;font-size:15px;font-weight:700;padding-top:8px;margin-top:4px;border-top:2px solid #111}
+  .invoice{padding:10px}
+</style>
+</head><body>${content}</body></html>`);
+  doc.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => {
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  }, 400);
+}
+
+function printInvoice() {
+  const name = document.getElementById('o-name')?.value || '—';
+  const phone = document.getElementById('o-phone')?.value || '—';
+  const start = document.getElementById('o-start')?.value || '';
+  const end = document.getElementById('o-end')?.value || '';
+  const rentItems = state.cart.filter(c=>c.type!=='sell');
+  const sellItems = state.cart.filter(c=>c.type==='sell');
+  const rentTotal = rentItems.reduce((s,c)=>s+c.price*c.qty,0);
+  const sellTotal = sellItems.reduce((s,c)=>s+c.price*c.qty,0);
+  const deposit = Math.round(rentTotal * 0.5);
+  const grandTotal = rentTotal + deposit + sellTotal;
+  const now = new Date().toLocaleDateString('mn-MN');
+
+  let text = `🧾 НЭХЭМЖЛЭЛ — DIY PARTY WORKSHOP\n`;
+  text += `📅 ${now}  📞 99822534\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `👤 ${name}  📱 ${phone}\n`;
+  if (start) text += `📦 Авах: ${start}\n`;
+  if (end) text += `🔄 Буцаах: ${end}\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+  if (rentItems.length) {
+    text += `🔄 ТҮРЭЭС:\n`;
+    rentItems.forEach(c => { text += `  ${c.name} x${c.qty}  ${fmtMoney(c.price*c.qty)}\n`; });
+    text += `  Дүн: ${fmtMoney(rentTotal)}\n`;
+    text += `  Барьцаа (50%): ${fmtMoney(deposit)}\n`;
+  }
+  if (sellItems.length) {
+    text += `🛍️ ЗАРАХ:\n`;
+    sellItems.forEach(c => { text += `  ${c.name} x${c.qty}  ${fmtMoney(c.price*c.qty)}\n`; });
+    text += `  Дүн: ${fmtMoney(sellTotal)}\n`;
+  }
+  text += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `💰 НИЙТ ТӨЛӨХ: ${fmtMoney(grandTotal)}\n`;
+  text += `\nБаярлалаа! ✨ DIY PARTY WORKSHOP`;
+
+  if (navigator.share) {
+    navigator.share({ title: 'Нэхэмжлэл', text });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('✅ Нэхэмжлэл хуулагдлаа', 'success'));
+  } else {
+    prompt('Нэхэмжлэлийг хуулна уу:', text);
+  }
+}
+
+function showInvoice() {
+  if (state.cart.length === 0 && !document.getElementById('o-name').value) {
+    showToast('⚠️ Эхлээд бараа сонгоно уу'); return;
+  }
+  const name = document.getElementById('o-name').value || '—';
+  const phone = document.getElementById('o-phone').value || '—';
+  const start = document.getElementById('o-start').value;
+  const end = document.getElementById('o-end').value;
+  const rentItems = state.cart.filter(c=>c.type!=='sell');
+  const sellItems = state.cart.filter(c=>c.type==='sell');
+  const rentTotal = rentItems.reduce((s,c)=>s+c.price*c.qty,0);
+  const sellTotal = sellItems.reduce((s,c)=>s+c.price*c.qty,0);
+  const deposit = Math.round(rentTotal * 0.5);
+  const grandTotal = rentTotal + deposit + sellTotal;
+  const now = new Date().toLocaleDateString('mn-MN');
+
+  const rentRows = rentItems.map(c =>
+    `<div class="inv-row"><span>${c.name} x${c.qty}</span><span>${fmtMoney(c.price*c.qty)}</span></div>`
+  ).join('');
+  const sellRows = sellItems.map(c =>
+    `<div class="inv-row"><span>${c.name} x${c.qty}</span><span>${fmtMoney(c.price*c.qty)}</span></div>`
+  ).join('');
+
+  const html = `
+    <div class="invoice">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="inv-logo">DIY PARTY</div><div class="inv-sub">WORKSHOP</div></div>
+        <div style="text-align:right;font-size:12px;color:#aaa">${now}<br>📞 99822534</div>
+      </div>
+      <hr class="inv-divider">
+      <div class="inv-row"><span style="color:#aaa">Хэрэглэгч</span><span>${name}</span></div>
+      <div class="inv-row"><span style="color:#aaa">Утас</span><span>${phone}</span></div>
+      ${start?`<div class="inv-row"><span style="color:#aaa">Авах</span><span>${fmtDate(start)}</span></div>`:''}
+      ${end?`<div class="inv-row"><span style="color:#aaa">Буцаах</span><span>${fmtDate(end)}</span></div>`:''}
+      <hr class="inv-divider">
+      ${rentItems.length?`
+        <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px">🔄 ТҮРЭЭС</div>
+        ${rentRows}
+        <div class="inv-row"><span style="color:#aaa">Түрээсийн дүн</span><span>${fmtMoney(rentTotal)}</span></div>
+        <div class="inv-row"><span style="color:#aaa">Барьцаа (50%)</span><span style="color:var(--rose)">${fmtMoney(deposit)}</span></div>
+      `:''}
+      ${sellItems.length?`
+        <div style="font-size:11px;font-weight:700;color:#888;margin:8px 0 4px">🛍️ ЗАРАХ</div>
+        ${sellRows}
+        <div class="inv-row"><span style="color:#aaa">Зарах дүн</span><span>${fmtMoney(sellTotal)}</span></div>
+      `:''}
+      <hr class="inv-divider">
+      <div class="inv-row inv-total"><span>НИЙТ ТӨЛӨХ</span><span style="color:var(--rose)">${fmtMoney(grandTotal)}</span></div>
+      <hr class="inv-divider">
+      <div style="font-size:11px;color:#aaa;text-align:center">Баярлалаа! ✨ DIY PARTY WORKSHOP</div>
+    </div>
+  `;
+  document.getElementById('invoice-content').innerHTML = `<div id="print-invoice">${html}</div>`;
+  openModal('invoice-modal');
+}
+
+// ============ ORDER LIST ============
+function renderOrderList() {
+  const search = (document.getElementById('order-search')?.value||'').toLowerCase();
+  const filter = document.getElementById('order-filter')?.value || '';
+  const statusLabel = {pending:'Хүлээгдэж буй',active:'Идэвхтэй',done:'Дууссан',cancelled:'Цуцалсан'};
+  const statusClass = {pending:'sb-pending',active:'sb-active',done:'sb-done',cancelled:'sb-cancelled'};
+  let list = state.orders.filter(o => {
+    const match = !search || o.name.toLowerCase().includes(search) || o.phone.includes(search);
+    const fmatch = !filter || o.status === filter;
+    return match && fmatch;
+  });
+  const tbody = document.getElementById('order-list-body');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="es-icon">📭</div><div class="es-text">Захиалга олдсонгүй</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(o => `
+    <tr>
+      <td style="font-weight:700;color:var(--rose)">#${o.num}</td>
+      <td>${o.name}</td>
+      <td>${o.phone}</td>
+      <td>${fmtDate(o.start)}</td>
+      <td>${fmtDate(o.end)||'—'}</td>
+      <td style="font-weight:700">${fmtMoney(o.total)}</td>
+      <td><span class="status-badge ${statusClass[o.status]}">${statusLabel[o.status]}</span></td>
+      <td>
+        <select class="input-field" style="width:130px;padding:4px 8px;font-size:12px" onchange="updateOrderStatus('${o.id}',this.value)">
+          <option value="pending" ${o.status==='pending'?'selected':''}>Хүлээгдэж буй</option>
+          <option value="active" ${o.status==='active'?'selected':''}>Идэвхтэй</option>
+          <option value="done" ${o.status==='done'?'selected':''}>Дууссан</option>
+          <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Цуцалсан</option>
+        </select>
+      </td>
+    </tr>
+  `).join('');
+}
+function filterOrders() { renderOrderList(); }
+function updateOrderStatus(id, status) {
+  const o = state.orders.find(o => o.id === id);
+  if (!o) return;
+  const prev = o.status;
+  o.status = status;
+
+  // Буцаах үед тоо нэмэх (түрээс дууссан эсвэл цуцалсан)
+  const shouldRestore = (status === 'done' || status === 'cancelled') && prev !== 'done' && prev !== 'cancelled';
+  const shouldDeduct = (status === 'active' || status === 'pending') && (prev === 'done' || prev === 'cancelled');
+
+  if (shouldRestore || shouldDeduct) {
+    o.items.forEach(cartItem => {
+      const invItem = state.inventory.find(i => i.id === cartItem.id);
+      if (invItem) {
+        if (shouldRestore) invItem.qty = (invItem.qty || 0) + cartItem.qty;
+        if (shouldDeduct) invItem.qty = Math.max(0, (invItem.qty || 0) - cartItem.qty);
+        saveToSheet({
+          name: invItem.name, cat: invItem.cat,
+          qty: invItem.qty, price: invItem.price,
+          type: invItem.type || 'rent', note: invItem.note || '',
+        }, invItem.id);
+      }
+    });
+    saveState();
+    renderItemsGrid();
+  } else {
+    saveState();
+  }
+  showToast('✅ Төлөв шинэчлэгдлээ', 'success');
+}
+
+// ============ DASHBOARD ============
+function updateDashboard() {
+  const total = state.orders.length;
+  const income = state.orders.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+o.total,0);
+  const active = state.orders.filter(o=>o.status==='active').length;
+  document.getElementById('stat-total-orders').textContent = total;
+  document.getElementById('stat-total-income').textContent = fmtMoney(income);
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-customers').textContent = state.customers.length;
+  const statusClass = {pending:'sb-pending',active:'sb-active',done:'sb-done',cancelled:'sb-cancelled'};
+  const statusLabel = {pending:'Хүлээгдэж буй',active:'Идэвхтэй',done:'Дууссан',cancelled:'Цуцалсан'};
+  const recent = state.orders.slice(0,8);
+  document.getElementById('dash-recent-body').innerHTML = recent.length ? recent.map(o=>`
+    <tr>
+      <td style="font-weight:700;color:var(--rose)">#${o.num}</td>
+      <td>${o.name}</td>
+      <td>${fmtDate(o.start)}</td>
+      <td style="font-weight:700">${fmtMoney(o.total)}</td>
+      <td><span class="status-badge ${statusClass[o.status]}">${statusLabel[o.status]}</span></td>
+    </tr>
+  `).join('') : `<tr><td colspan="5"><div class="empty-state"><div class="es-icon">📭</div><div class="es-text">Одоогоор захиалга байхгүй</div></div></td></tr>`;
+}
+function updateTopbar() {
+  const today = new Date().toISOString().slice(0,10);
+  const todayOrders = state.orders.filter(o => o.createdAt && o.createdAt.startsWith(today));
+  document.getElementById('today-orders').textContent = todayOrders.length;
+  const income = todayOrders.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+o.total,0);
+  document.getElementById('today-income').textContent = fmtMoney(income);
+  const d = new Date();
+  document.getElementById('topbar-date').textContent = d.toLocaleDateString('mn-MN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+// ============ CALENDAR ============
+function renderCalendar() {
+  const mn = ['Нэгдүгээр','Хоёрдугаар','Гуравдугаар','Дөрөвдүгээр','Тавдугаар','Зургадугаар','Долдугаар','Наймдугаар','Есдүгээр','Аравдугаар','Арван нэгдүгээр','Арван хоёрдугаар'];
+  document.getElementById('cal-month-title').textContent = `${mn[state.calMonth]} сар, ${state.calYear}`;
+  const grid = document.getElementById('cal-grid');
+  const first = new Date(state.calYear, state.calMonth, 1);
+  const last = new Date(state.calYear, state.calMonth+1, 0);
+  // Mon=0
+  let startDay = first.getDay(); // 0=Sun
+  startDay = startDay === 0 ? 6 : startDay - 1;
+  const today = new Date();
+  const cells = [];
+  // prev month
+  for (let i=0;i<startDay;i++) {
+    const d = new Date(state.calYear, state.calMonth, -startDay+i+1);
+    cells.push({date:d, other:true});
+  }
+  for (let d=1;d<=last.getDate();d++) cells.push({date:new Date(state.calYear,state.calMonth,d), other:false});
+  const rem = (7 - cells.length%7) % 7;
+  for (let i=1;i<=rem;i++) cells.push({date:new Date(state.calYear,state.calMonth+1,i), other:true});
+
+  grid.innerHTML = cells.map(({date,other}) => {
+    const ds = date.toISOString().slice(0,10);
+    const isToday = date.toDateString()===today.toDateString();
+    const ordersOnDay = state.orders.filter(o => o.start===ds || o.end===ds);
+    const dots = ordersOnDay.slice(0,3).map(()=>'<span class="day-dot"></span>').join('');
+    return `<div class="cal-day${other?' other-month':''}${isToday?' today':''}${ordersOnDay.length?' has-order':''}" onclick="selectDay('${ds}')">
+      <div class="day-num">${date.getDate()}</div>
+      <div>${dots}</div>
+    </div>`;
+  }).join('');
+}
+function changeMonth(d) {
+  state.calMonth += d;
+  if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+  if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
+  renderCalendar();
+}
+function selectDay(ds) {
+  state.selectedDay = ds;
+  const orders = state.orders.filter(o => o.start===ds || o.end===ds);
+  const container = document.getElementById('cal-day-orders');
+  if (!orders.length) {
+    container.innerHTML = `<div class="empty-state"><div class="es-icon">📅</div><div class="es-text">${fmtDate(ds)} — захиалга байхгүй</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div style="font-weight:700;margin-bottom:10px;font-size:14px">${fmtDate(ds)} — ${orders.length} захиалга</div>` +
+    orders.map(o=>`
+      <div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700">${o.name} — ${o.phone}</div>
+          <div style="font-size:12px;color:#999;margin-top:2px">${o.items.map(i=>i.name).join(', ')}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700;color:var(--rose)">${fmtMoney(o.total)}</div>
+          <div style="font-size:11px;color:#aaa">${o.start===ds?'Авах өдөр':'Буцаах өдөр'}</div>
+        </div>
+      </div>
+    `).join('');
+}
+
+// ============ INVENTORY ============
+function renderInventory() {
+  const tbody = document.getElementById('inv-body');
+  if (!state.inventory.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="es-icon">📦</div><div class="es-text">Бараа байхгүй. Google Sheets-ээс татна уу</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.inventory.map(i => `
+    <tr>
+      <td style="font-weight:600">${i.name}</td>
+      <td>${i.cat||'—'}</td>
+      <td><span class="status-badge ${(i.type||'rent')==='rent'?'sb-done':'sb-active'}">${(i.type||'rent')==='rent'?'🔄 Түрээс':'🛍️ Зарах'}</span></td>
+      <td><span style="font-weight:700;color:${(i.qty||0)<2?'var(--danger)':'var(--dark)'}">${i.qty||0}</span></td>
+      <td style="color:var(--rose);font-weight:700">${fmtMoney(i.price||0)}</td>
+      <td style="font-size:12px;color:#888">${[i.color,i.size].filter(Boolean).join(' / ')||'—'}</td>
+      <td><span class="status-badge ${(i.qty||0)>0?'sb-active':'sb-cancelled'}">${(i.qty||0)>0?'Байна':'Дууссан'}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="editInventory(${i.id})">✏️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function fixImageUrl(url) {
+console.log(url);
+
+  if (!url) return '';
+  const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+  return url;
+}
+
+// ============ GOOGLE SHEETS SYNC ============
+async function syncFromSheets() {
+  const scriptUrl = document.getElementById('script-url').value.trim();
+  if (!scriptUrl) { showToast('⚠️ URL оруулна уу'); return; }
+
+  const statusEl = document.getElementById('sheets-status');
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;font-size:13px;color:#166534;display:flex;align-items:center;gap:8px">
+    <span>🔄</span> Google Sheets-ээс татаж байна...
+  </div>`;
+
+  try { localStorage.setItem('diy_script_url', scriptUrl); } catch(e){}
+
+  try {
+    const resp = await fetch(scriptUrl, {
+      redirect: 'follow',
+      method: 'GET',
+    });
+    if (!resp.ok) throw new Error(`Серверийн алдаа: ${resp.status}`);
+    const text = await resp.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { throw new Error('JSON уншихад алдаа: ' + text.slice(0,100)); }
+
+    if (!Array.isArray(json) || json.length === 0) throw new Error('Өгөгдөл хоосон байна');
+
+    // Debug: эхний мөрийн баганын нэрүүд болон үнийг харуулна
+    if (json.length > 0) {
+      const firstRow = json[0];
+      const keys = Object.keys(firstRow);
+      const priceKey = keys.find(k => k.toLowerCase().includes('price') || k.toLowerCase().includes('үнэ') || k.toLowerCase().includes('selling'));
+      console.log('Баганын нэрүүд:', keys.join(', '));
+      console.log('Үнийн багана:', priceKey, '=', firstRow[priceKey]);
+      statusEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;font-size:12px;color:#166534">
+        🔍 Баганууд: ${keys.join(', ')}<br>Үнэ: ${priceKey} = ${firstRow[priceKey]}
+      </div>`;
+    }
+
+    const items = json
+      .filter(row => row['Product Name'] || row['product name'] || row['Нэр'])
+      .map((row, idx) => {
+        const str = v => String(v == null ? '' : v).trim();
+        const name = str(row['Product Name'] || row['product name'] || row['Нэр']);
+        if (!name) return null;
+        const priceRaw = str(row['Selling_price'] || row['selling_price'] || row['Үнэ'] || '0').replace(/[₮,\s]/g,'');
+        const typeRaw = str(row['Type'] || row['type'] || row['Төрөл'] || 'rent').toLowerCase();
+        return {
+          id: idx + 1,
+          sku: str(row['sku'] || row['SKU']),
+          name,
+          cat: str(row['Category'] || row['category'] || row['Ангилал']) || 'Бусад',
+          subcat: str(row['Subcategory'] || row['subcategory']),
+          type: (typeRaw === 'sale' || typeRaw === 'sell') ? 'sell' : 'rent',
+          qty: parseInt(row['Stock'] || row['stock'] || row['Тоо'] || 0) || 0,
+          price: parseFloat(priceRaw) || 0,
+          purchasePrice: parseFloat(str(row['Purchase_price'] || row['purchase_price'] || '0').replace(/[₮,\s]/g,'')) || 0,
+          color: str(row['Color'] || row['color'] || row['Өнгө']),
+          size: str(row['Size'] || row['size'] || row['Хэмжээ']),
+          location: str(row['Location'] || row['location']),
+          imageUrl: fixImageUrl(str(row['ImageurlIH'] || row['ImageurlIH'] || row['Image'] || '')),
+          note: '',
+          status: 'available',
+        };
+      }).filter(Boolean);
+
+    if (!items.length) throw new Error('Бараа олдсонгүй');
+
+    state.inventory = items;
+    saveState();
+    renderInventory();
+    renderItemsGrid();
+    closeModal('sheets-modal');
+    statusEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;font-size:13px;color:#166534">
+      ✅ <strong>${items.length} бараа</strong> амжилттай татагдлаа!
+      <span style="float:right;color:#aaa;font-size:11px">${new Date().toLocaleTimeString('mn-MN')}</span>
+    </div>`;
+    showToast(`✅ ${items.length} бараа татагдлаа`, 'success');
+  } catch(e) {
+    statusEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px;font-size:13px;color:#991b1b">
+      ❌ Алдаа: ${e.message}
+    </div>`;
+    showToast('❌ Татахад алдаа гарлаа');
+  }
+}
+function selectType(t) {
+  document.getElementById('inv-type-rent').checked = t === 'rent';
+  document.getElementById('inv-type-sell').checked = t === 'sell';
+  document.getElementById('type-btn-rent').style.cssText = t==='rent'
+    ? 'border:2px solid var(--rose);background:#fff0f4;border-radius:9px;padding:10px;text-align:center;font-size:13px;font-weight:700;color:var(--rose)'
+    : 'border:2px solid #e0c8d0;background:white;border-radius:9px;padding:10px;text-align:center;font-size:13px;font-weight:600;color:#aaa';
+  document.getElementById('type-btn-sell').style.cssText = t==='sell'
+    ? 'border:2px solid var(--gold);background:#fffbf0;border-radius:9px;padding:10px;text-align:center;font-size:13px;font-weight:700;color:var(--gold)'
+    : 'border:2px solid #e0c8d0;background:white;border-radius:9px;padding:10px;text-align:center;font-size:13px;font-weight:600;color:#aaa';
+  document.getElementById('inv-price-label').textContent = t==='rent' ? 'Үнэ (1 өдөр) ₮' : 'Зарах үнэ ₮';
+}
+function editInventory(id) {
+  const i = state.inventory.find(x=>x.id===id);
+  if (!i) return;
+  document.getElementById('inv-edit-id').value = id;
+  document.getElementById('inv-name').value = i.name;
+  document.getElementById('inv-cat').value = i.cat || 'Бөмбөлөг';
+  document.getElementById('inv-qty').value = i.qty;
+  document.getElementById('inv-price').value = i.price;
+  document.getElementById('inv-note').value = i.note||'';
+  selectType(i.type || 'rent');
+  openModal('inv-modal');
+}
+function saveInventory() {
+  const editId = document.getElementById('inv-edit-id').value;
+  const name = document.getElementById('inv-name').value.trim();
+  if (!name) { showToast('⚠️ Нэр оруулна уу'); return; }
+  const type = document.getElementById('inv-type-sell').checked ? 'sell' : 'rent';
+  const data = {
+    name,
+    cat: document.getElementById('inv-cat').value,
+    type,
+    qty: parseInt(document.getElementById('inv-qty').value)||0,
+    price: parseInt(document.getElementById('inv-price').value)||0,
+    note: document.getElementById('inv-note').value,
+    status: 'available',
+  };
+  if (editId) {
+    const idx = state.inventory.findIndex(x=>x.id==editId);
+    if (idx>=0) state.inventory[idx] = {...state.inventory[idx],...data};
+  } else {
+    state.inventory.push({id: Date.now(), ...data});
+  }
+  saveState();
+
+  // Google Sheet-д хадгалах
+  saveToSheet(data, editId);
+
+  renderInventory();
+  renderItemsGrid();
+  closeModal('inv-modal');
+  document.getElementById('inv-edit-id').value = '';
+  showToast('💾 Хадгалагдлаа', 'success');
+}
+
+async function saveToSheet(data, editId) {
+  let scriptUrl = '';
+  try { scriptUrl = localStorage.getItem('diy_script_url') || ''; } catch(e){}
+  if (!scriptUrl) scriptUrl = document.getElementById('script-url')?.value?.trim() || '';
+  if (!scriptUrl) { showToast('⚠️ Script URL олдсонгүй'); return; }
+
+  const params = new URLSearchParams({
+    action: 'save',
+    editId: editId || '',
+    name: data.name || '',
+    cat: data.cat || '',
+    qty: String(data.qty || 0),
+    price: String(data.price || 0),
+    type: data.type || 'rent',
+    note: data.note || '',
+  });
+
+  const fullUrl = scriptUrl + '?' + params.toString();
+  console.log('saveToSheet URL:', fullUrl);
+
+  try {
+    showToast('⏳ Sheet-д хадгалж байна...');
+    const resp = await fetch(fullUrl, { redirect: 'follow' });
+    console.log('Response status:', resp.status);
+    const text = await resp.text();
+    console.log('Response text:', text);
+    const json = JSON.parse(text);
+    if (json.status === 'ok') {
+      showToast('☁️ Sheet-д хадгалагдлаа', 'success');
+    } else {
+      showToast('⚠️ Sheet алдаа: ' + JSON.stringify(json));
+    }
+  } catch(e) {
+    console.error('saveToSheet алдаа:', e);
+    showToast('⚠️ Sheet холболт алдаа: ' + e.message);
+  }
+}
+
+// ============ CUSTOMERS ============
+function renderCustomers() {
+  const search = (document.getElementById('cust-search')?.value||'').toLowerCase();
+  let list = state.customers.filter(c =>
+    !search || c.name.toLowerCase().includes(search) || c.phone.includes(search)
+  );
+  const tbody = document.getElementById('cust-body');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="es-icon">👤</div><div class="es-text">Хэрэглэгч олдсонгүй</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const orders = state.orders.filter(o=>o.phone===c.phone);
+    const total = orders.reduce((s,o)=>s+o.total,0);
+    const last = orders[0]?.start||'—';
+    return `<tr>
+      <td style="font-weight:700">${c.name}</td>
+      <td>${c.phone}</td>
+      <td>${orders.length}</td>
+      <td style="color:var(--rose);font-weight:700">${fmtMoney(total)}</td>
+      <td>${fmtDate(last)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="editCustomer('${c.id}')">✏️</button></td>
+    </tr>`;
+  }).join('');
+}
+function filterCustomers() { renderCustomers(); }
+function editCustomer(id) {
+  const c = state.customers.find(x=>x.id===id);
+  if (!c) return;
+  document.getElementById('cust-edit-id').value = id;
+  document.getElementById('cust-name').value = c.name;
+  document.getElementById('cust-phone').value = c.phone;
+  document.getElementById('cust-addr').value = c.addr||'';
+  document.getElementById('cust-note').value = c.note||'';
+  openModal('cust-modal');
+}
+function saveCustomer() {
+  const editId = document.getElementById('cust-edit-id').value;
+  const name = document.getElementById('cust-name').value.trim();
+  const phone = document.getElementById('cust-phone').value.trim();
+  if (!name||!phone) { showToast('⚠️ Нэр, утас оруулна уу'); return; }
+  const data = { name, phone, addr: document.getElementById('cust-addr').value, note: document.getElementById('cust-note').value };
+  if (editId) {
+    const idx = state.customers.findIndex(x=>x.id===editId);
+    if (idx>=0) state.customers[idx] = {...state.customers[idx],...data};
+  } else {
+    state.customers.push({id: genId(), ...data, createdAt: new Date().toISOString()});
+  }
+  saveState();
+  renderCustomers();
+  closeModal('cust-modal');
+  document.getElementById('cust-edit-id').value = '';
+  showToast('💾 Хадгалагдлаа', 'success');
+}
+
+// ============ PAYMENTS ============
+function renderPayments() {
+  const payTypes = {cash:'💵 Бэлэн',transfer:'📱 Шилжүүлэг',qpay:'📲 QPay'};
+  const orders = state.orders.filter(o=>o.status!=='cancelled');
+  const total = orders.reduce((s,o)=>s+o.total,0);
+  const cash = orders.filter(o=>o.payment==='cash').reduce((s,o)=>s+o.total,0);
+  const transfer = orders.filter(o=>o.payment==='transfer').reduce((s,o)=>s+o.total,0);
+  const qpay = orders.filter(o=>o.payment==='qpay').reduce((s,o)=>s+o.total,0);
+  document.getElementById('pay-total').textContent = fmtMoney(total);
+  document.getElementById('pay-cash').textContent = fmtMoney(cash);
+  document.getElementById('pay-transfer').textContent = fmtMoney(transfer);
+  document.getElementById('pay-qpay').textContent = fmtMoney(qpay);
+  const tbody = document.getElementById('pay-body');
+  if (!orders.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="es-icon">💳</div><div class="es-text">Төлбөр байхгүй</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = orders.map(o=>`
+    <tr>
+      <td>${fmtDate(o.createdAt?.slice(0,10)||o.start)}</td>
+      <td>${o.name}</td>
+      <td style="font-weight:700;color:var(--rose)">${fmtMoney(o.total)}</td>
+      <td>${fmtMoney(o.deposit)}</td>
+      <td>${payTypes[o.payment]||o.payment}</td>
+      <td style="color:var(--rose)">#${o.num}</td>
+    </tr>
+  `).join('');
+}
+
+// ============ ONLINE ORDERS ============
+const ORDER_PAGE_URL = 'https://uyansofts.github.io/diy-party-pos/order.html';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJdTZd21WNSH8-uQ8x_Rtli4ouNJVjq9jEmY6-Yar7jVpkeC7pmtT4JDb__I3MhRIj/exec';
+
+function copyOrderLink() {
+  navigator.clipboard?.writeText(ORDER_PAGE_URL).then(() => {
+    showToast('✅ Линк хуулагдлаа', 'success');
+  }).catch(() => {
+    prompt('Линкийг хуулна уу:', ORDER_PAGE_URL);
+  });
+}
+function shareToFB() {
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ORDER_PAGE_URL)}`, '_blank');
+}
+function shareToIG() {
+  copyOrderLink();
+  showToast('✅ Линк хуулагдлаа — IG bio эсвэл story-д тавина уу!', 'success');
+}
+
+async function renderOnlineOrders() {
+  const tbody = document.getElementById('online-orders-body');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#aaa">🔄 Татаж байна...</td></tr>`;
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=getOrders', { redirect: 'follow' });
+    const json = await resp.json();
+    const onlineOrders = Array.isArray(json) ? json : [];
+    if (!onlineOrders.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">📭</div><div class="es-text">Онлайн захиалга байхгүй</div></div></td></tr>`;
+      return;
+    }
+    const statusClass = {pending:'sb-pending', confirmed:'sb-active', cancelled:'sb-cancelled'};
+    const statusLabel = {pending:'Хүлээгдэж буй', confirmed:'Баталгаажсан', cancelled:'Цуцалсан'};
+    tbody.innerHTML = onlineOrders.map((o, i) => {
+      const name = o.name || o['Нэр'] || '—';
+      const phone = o.phone || o['Утас'] || '—';
+      const date = o.date || o['Авах огноо'] || '—';
+      const total = Number(o.total || o['Нийт дүн'] || 0);
+      const status = o.status || o['Төлөв'] || 'pending';
+      return `<tr>
+        <td style="font-weight:700;color:var(--rose)">#${i+1}</td>
+        <td style="font-weight:600">${name}</td>
+        <td>${phone}</td>
+        <td>${date}</td>
+        <td style="font-weight:700;color:var(--rose)">${total ? fmtMoney(total) : '—'}</td>
+        <td><span class="status-badge ${statusClass[status]||'sb-pending'}">${statusLabel[status]||'Хүлээгдэж буй'}</span></td>
+        <td><button class="btn btn-primary btn-sm" onclick="importOnlineOrder(${i})">+ POS-д нэмэх</button></td>
+      </tr>`;
+    }).join('');
+    window._onlineOrders = onlineOrders;
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">⚠️</div><div class="es-text">Татахад алдаа гарлаа: ${e.message}</div></div></td></tr>`;
+  }
+}
+
+function importOnlineOrder(idx) {
+  const o = (window._onlineOrders||[])[idx];
+  if (!o) return;
+  const name = o.name || o['Нэр'] || '';
+  const phone = o.phone || o['Утас'] || '';
+  const date = o.date || o['Авах огноо'] || '';
+  const returnDate = o.returnDate || o['Буцаах огноо'] || '';
+  const note = o.note || o['Тэмдэглэл'] || '';
+  const payment = o.payment || o['Төлбөр'] || 'transfer';
+  const total = Number(o.total || o['Нийт дүн'] || 0);
+  // items JSON string байж болно
+  let items = [];
+  try {
+    const raw = o.items || o['Бараанууд'] || '[]';
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    items = Array.isArray(parsed) ? parsed.map(it => ({
+      id: Date.now() + Math.random(),
+      name: it.name || '',
+      price: Number(it.price) || 0,
+      qty: Number(it.qty) || 1,
+      type: it.type || 'rent',
+    })) : [];
+  } catch(e) { items = []; }
+  const calcTotal = items.length ? items.reduce((s,i)=>s+i.price*i.qty,0) : total;
+  const order = {
+    id: genId(),
+    num: state.orders.length + 1,
+    name, phone,
+    note: note + ' [Онлайн]',
+    start: date,
+    end: returnDate,
+    payment,
+    items,
+    total: calcTotal,
+    deposit: Math.round(calcTotal * 0.5),
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    source: 'online',
+  };
+  state.orders.unshift(order);
+  if (!state.customers.find(c=>c.phone===phone)) {
+    state.customers.push({id:genId(), name, phone, addr:'', note:'', createdAt:new Date().toISOString()});
+  }
+  saveState();
+  updateTopbar();
+  showToast(`✅ "${name}"-ийн захиалга POS-д нэмэгдлээ`, 'success');
+  switchTab('order-list', document.querySelectorAll('.nav-item')[1]);
+}
+
+// ============ PACKAGES ============
+const packageData = {
+  mini: {
+    name: '🌸 Mini Package', price: '150,000₮',
+    items: ['Угтах самбар (1 ширхэг)', 'Бөмбөлөг чимэглэл (жижиг гар)', 'Цэцгийн мөр 90x20см (1 ширхэг)'],
+    tag: 'Жижиг баяр · Төрсөн өдөр'
+  },
+  standard: {
+    name: '✨ Standard Package', price: '280,000₮',
+    items: ['Угтах самбар (1 ширхэг)', 'Бөмбөлөг чимэглэл (том гар)', 'Цэцгийн мөр 90x20см (2 ширхэг)', 'Нуман дэвсгэр 180x80см', 'Гэрэлт тоо 50см (2 ширхэг)'],
+    tag: 'Хамгийн алдартай 🔥'
+  },
+  premium: {
+    name: '👑 Premium Package', price: '480,000₮',
+    items: ['Угтах самбар (1 ширхэг)', 'Бөмбөлөг чимэглэл (том гар)', 'Том цэцгийн чимэглэл 100x70см', 'Цэцгийн мөр 90x20см (3 ширхэг)', 'Нуман дэвсгэр 200x100см', 'Гэрэлт тоо 1м (2 ширхэг)', 'Sequin wall panel (4 ширхэг)', '"Миний анхны жил" самбар'],
+    tag: 'Хурим · Онцгой үйл ажиллагаа'
+  }
+};
+
+function copyPackageText(type) {
+  const p = packageData[type];
+  if (!p) return;
+  const text = `🎉 ${p.name} — ${p.price}\n${p.tag}\n\n${p.items.map(i=>'✓ '+i).join('\n')}\n\n📞 Захиалга: 99822534\n#DIYPartyWorkshop`;
+  navigator.clipboard?.writeText(text).then(() => showToast('✅ Зар хуулагдлаа', 'success'))
+    || (prompt('Хуулна уу:', text));
+}
+
+// ============ CONTRACT ============
+function renderContractPreview() {
+  updateContractPreview();
+  // Input-уудад event listener нэмнэ
+  ['con-name','con-phone','con-start','con-end','con-items','con-total','con-deposit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.oninput = updateContractPreview;
+  });
+}
+
+function updateContractPreview() {
+  const name = document.getElementById('con-name')?.value || '_______________';
+  const phone = document.getElementById('con-phone')?.value || '_______________';
+  const start = document.getElementById('con-start')?.value || '_______________';
+  const end = document.getElementById('con-end')?.value || '_______________';
+  const items = document.getElementById('con-items')?.value || '_______________';
+  const total = document.getElementById('con-total')?.value || '_______________';
+  const deposit = document.getElementById('con-deposit')?.value || '_______________';
+  const today = new Date().toLocaleDateString('mn-MN');
+
+  const text = `ТҮРЭЭСИЙН ГЭРЭЭ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DIY PARTY WORKSHOP
+Утас: 99822534
+Огноо: ${today}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ХЭРЭГЛЭГЧИЙН МЭДЭЭЛЭЛ
+
+Нэр:    ${name}
+Утас:   ${phone}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ТҮРЭЭСИЙН МЭДЭЭЛЭЛ
+
+Авах огноо:    ${start}
+Буцаах огноо:  ${end}
+
+Түрээслэсэн зүйлс:
+${items}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ТӨЛБӨР
+
+Нийт дүн:   ${total}
+Барьцаа:    ${deposit}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+НӨХЦӨЛ
+
+1. Барьцаа мөнгө нийт дүнгийн 50%
+2. Гэмтсэн тохиолдолд нөхөн төлбөр
+3. Хугацаандаа буцааж өгөх үүрэгтэй
+4. Хугацаа хэтэрвэл өдөрт +10,000₮
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Хэрэглэгч гарын үсэг: _______________
+
+DIY PARTY WORKSHOP: _______________`;
+
+  const preview = document.getElementById('contract-preview');
+  if (preview) preview.textContent = text;
+}
+
+function copyContract() {
+  const text = document.getElementById('contract-preview')?.textContent || '';
+  navigator.clipboard?.writeText(text).then(() => showToast('✅ Гэрээ хуулагдлаа', 'success'));
+}
+
+function printContract() {
+  const content = document.getElementById('contract-preview')?.textContent || '';
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body{font-family:'Courier New',monospace;padding:24px;font-size:12px;line-height:1.8;max-width:500px;margin:0 auto}
+  pre{white-space:pre-wrap;font-family:inherit}
+</style></head><body><pre>${content}</pre></body></html>`);
+  doc.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => {
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  }, 400);
+}
+
+// ============ INIT ============
+loadState();
+
+// Load saved script URL
+try {
+  const newUrl = 'https://script.google.com/macros/s/AKfycbz6n_EMAuwkHfN56b1XYZ54koUBt2s4BvX2IpTnS2au12mvAkBiqgP_6fRxeiHgFAEA/exec';
+  localStorage.setItem('diy_script_url', newUrl);
+  document.getElementById('script-url').value = newUrl;
+} catch(e){}
+
+updateTopbar();
+updateDashboard();
+
+// Хуудас нээгдэхэд spinner харуулж Sheet-ээс татна
+autoSyncInventory();
+
+function showItemsUI(success) {
+  const loading = document.getElementById('items-loading');
+  const searchRow = document.getElementById('items-search-row');
+  const catScroll = document.getElementById('pos-cat-scroll');
+  const tabBtns = document.getElementById('item-tab-btns');
+  if (loading) {
+    if (success) {
+      loading.style.display = 'none';
+    } else {
+      loading.innerHTML = `
+        <div style="font-size:32px;margin-bottom:10px">⚠️</div>
+        <div style="font-size:13px;font-weight:600;color:#991b1b;margin-bottom:4px">Бараа татаж чадсангүй</div>
+        <div style="font-size:11px;color:#aaa;margin-bottom:14px">Интернет холболтоо шалгаад дахин оролдоно уу</div>
+        <button onclick="autoSyncInventory()" style="background:var(--rose);color:white;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">🔄 Дахин оролдох</button>
+      `;
+    }
+  }
+  if (success) {
+    if (searchRow) searchRow.style.display = 'flex';
+    if (catScroll) catScroll.style.display = 'flex';
+    if (tabBtns) tabBtns.style.display = 'flex';
+  }
+}
+
+async function autoSyncInventory() {
+  const loading = document.getElementById('items-loading');
+  const searchRow = document.getElementById('items-search-row');
+  const catScroll = document.getElementById('pos-cat-scroll');
+  const tabBtns = document.getElementById('item-tab-btns');
+
+  // Spinner харуулна
+  if (loading) {
+    loading.style.display = 'block';
+    loading.innerHTML = `
+      <div style="display:inline-block;position:relative;width:56px;height:56px;margin-bottom:12px">
+        <svg viewBox="0 0 64 64" width="56" height="56" style="animation:pospin 1.5s linear infinite">
+          <circle cx="32" cy="32" r="28" fill="none" stroke="#f0e0e8" stroke-width="6"/>
+          <circle cx="32" cy="32" r="28" fill="none" stroke="var(--rose)" stroke-width="6"
+            stroke-dasharray="44 132" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px">⏳</div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:3px">Бараанууд татаж байна...</div>
+      <div style="font-size:11px;color:#aaa">Түр хүлээнэ үү</div>
+    `;
+  }
+  if (searchRow) searchRow.style.display = 'none';
+  if (catScroll) catScroll.style.display = 'none';
+  if (tabBtns) tabBtns.style.display = 'none';
+
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbz6n_EMAuwkHfN56b1XYZ54koUBt2s4BvX2IpTnS2au12mvAkBiqgP_6fRxeiHgFAEA/exec';
+
+  try {
+    const resp = await fetch(scriptUrl, { redirect: 'follow' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    if (!Array.isArray(json) || !json.length) throw new Error('Хоосон');
+
+    const str = v => String(v == null ? '' : v).trim();
+    const items = json.filter(row => str(row['Product Name'])).map((row, idx) => ({
+      id: idx + 1,
+      sku: str(row['sku'] || row['SKU']),
+      name: str(row['Product Name']),
+      cat: str(row['Category']) || 'Бусад',
+      subcat: str(row['Subcategory']),
+      type: (()=>{ const t=str(row['Type']||'').toLowerCase(); return(t==='sale'||t==='sell'||t==='зарах')?'sell':'rent'; })(),
+      qty: parseInt(row['Stock'] || 0) || 0,
+      price: parseFloat(str(row['Selling_price']||'0').replace(/[₮,\s]/g,'')) || 0,
+      color: str(row['Color']),
+      size: str(row['Size']),
+      location: str(row['Location']),
+    
+      imageUrl: fixImageUrl(str(row['ImageurlIH'] || row['ImageurlIH'] || '')),
+     // imageUrl: fixImageUrl(str(row['Image_url'] || row['image_url'] || '')),
+      note: '',
+      status: 'available',
+    }));
+
+    if (items.length) {
+      state.inventory = items;
+      saveState();
+      showItemsUI(true);
+      renderItemsGrid();
+      updateDashboard();
+    } else {
+      throw new Error('Бараа олдсонгүй');
+    }
+  } catch(e) {
+    showItemsUI(false);
+    if (!state.inventory.length) {
+      state.inventory = defaultInventory;
+      saveState();
+    }
+    renderItemsGrid();
+  }
+}
+
+setInterval(updateTopbar, 60000);
+setInterval(autoSyncInventory, 5 * 60 * 1000);
+</script>
+</body>
+</html>
