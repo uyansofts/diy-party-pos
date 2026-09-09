@@ -1054,8 +1054,7 @@ body {
       </div>
       <div>
         <label class="input-label">Apps Script URL</label>
-        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbyJznS-rkMfRjhBuxorGAt-AlVqDlKtC9d_7PzVIcHsr8bGRwf_YoyzsnPkOTU8JVRo/exec">
-                                              
+        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbwJdTZd21WNSH8-uQ8x_Rtli4ouNJVjq9jEmY6-Yar7jVpkeC7pmtT4JDb__I3MhRIj/exec">
       </div>
     </div>
     <div class="modal-footer">
@@ -2179,8 +2178,8 @@ function renderPayments() {
 
 // ============ ONLINE ORDERS ============
 const ORDER_PAGE_URL = 'https://uyansofts.github.io/diy-party-pos/order.html';
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJznS-rkMfRjhBuxorGAt-AlVqDlKtC9d_7PzVIcHsr8bGRwf_YoyzsnPkOTU8JVRo/exec';
-                    
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJdTZd21WNSH8-uQ8x_Rtli4ouNJVjq9jEmY6-Yar7jVpkeC7pmtT4JDb__I3MhRIj/exec';
+
 function copyOrderLink() {
   navigator.clipboard?.writeText(ORDER_PAGE_URL).then(() => {
     showToast('✅ Линк хуулагдлаа', 'success');
@@ -2486,7 +2485,7 @@ async function autoSyncInventory() {
       color: str(row['Color']),
       size: str(row['Size']),
       location: str(row['Location']),
-      imageUrl: fixImageUrl(str(row['Image_url'] || row['image_url'] || '')),
+      imageUrl: fixImageUrl(str(row['Image_url'] || row['image_url'] || row['Imageurl'] || row['ImageurlIH'] || '')),
       note: '',
       status: 'available',
     }));

@@ -305,7 +305,7 @@ async function loadInventory(){
       qty:parseInt(r['Stock']||0)||0,
       price:parseFloat(str(r['Selling_price']||'0').replace(/[₮,\s]/g,''))||0,
       color:str(r['Color']),size:str(r['Size']),
-      imageUrl:(r['Image_url']||r['image_url']||''),
+      imageUrl:fixImageUrl(str(r['Image_url']||r['image_url']||r['Imageurl']||'')),
     }));
     document.getElementById('order-loading').style.display='none';
     document.getElementById('type-tabs-wrap').style.display='flex';
