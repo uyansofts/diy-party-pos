@@ -425,13 +425,18 @@ function renderOrderItems(){
   const q=(document.getElementById('o-search')?.value||'').toLowerCase();
   const activeCatName=activeCatId?getCatName(activeCatId):null;
   const activeSubCatName=activeSubCatId?getCatName(activeSubCatId):null;
+  const childNames=activeCatId?categories.filter(c=>c.parent_id===activeCatId).map(c=>c.name):[];
 
   const filtered=inventory.filter(i=>{
     const typeMatch=i.type===oTab&&i.qty>0;
-    const catMatch=!activeCatName||(i.cat===activeCatName)||(i.subcat===activeCatName);
-    const subMatch=!activeSubCatName||(i.subcat===activeSubCatName)||(i.cat===activeSubCatName);
+    let catMatch=true;
+    if(activeSubCatName){
+      catMatch=i.subcat===activeSubCatName||i.cat===activeSubCatName;
+    } else if(activeCatName){
+      catMatch=i.cat===activeCatName||childNames.includes(i.cat)||childNames.includes(i.subcat);
+    }
     const qMatch=!q||i.name.toLowerCase().includes(q)||(i.cat||'').toLowerCase().includes(q)||(i.subcat||'').toLowerCase().includes(q);
-    return typeMatch&&catMatch&&subMatch&&qMatch;
+    return typeMatch&&catMatch&&qMatch;
   });
   const grid=document.getElementById('order-items-grid');
   const cartItem=id=>cart.find(c=>c.id===id);

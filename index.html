@@ -1323,19 +1323,29 @@ function filterItems() {
     'Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Арк':'🎪','Бусад':'🎁'
   };
 
-  // Идэвхтэй ангиллын нэр
   const activeCatName = activePOSCat ? getCatName(activePOSCat) : null;
   const activeSubCatName = activePOSSubCat ? getCatName(activePOSSubCat) : null;
 
+  // Сонгосон ангиллын бүх хүүхэд ангиллын нэрүүд
+  const childNames = activePOSCat
+    ? categories.filter(c => c.parent_id === activePOSCat).map(c => c.name)
+    : [];
+
   const filtered = state.inventory.filter(i => {
     const typeMatch = (i.type||'rent') === itemTab;
-    const catMatch = !activeCatName || i.cat === activeCatName;
-    const subMatch = !activeSubCatName || i.subcat === activeSubCatName;
+    let catMatch = true;
+    if (activeSubCatName) {
+      // Хүүхэд ангилал сонгосон — subcat эсвэл cat-аар шүүнэ
+      catMatch = i.subcat === activeSubCatName || i.cat === activeSubCatName;
+    } else if (activeCatName) {
+      // Эцэг ангилал сонгосон — cat эсвэл хүүхэд ангиллуудаар шүүнэ
+      catMatch = i.cat === activeCatName || childNames.includes(i.cat) || childNames.includes(i.subcat);
+    }
     const qMatch = !q || i.name.toLowerCase().includes(q) ||
       (i.cat||'').toLowerCase().includes(q) ||
       (i.subcat||'').toLowerCase().includes(q) ||
       (i.color||'').toLowerCase().includes(q);
-    return typeMatch && catMatch && subMatch && qMatch;
+    return typeMatch && catMatch && qMatch;
   });
 
   const grid = document.getElementById('items-grid');
