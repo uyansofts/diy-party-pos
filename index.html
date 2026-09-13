@@ -572,7 +572,9 @@ body {
                 </button>
               </div>
               <!-- Category scroll tabs -->
-              <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:6px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <!-- Subcategory scroll tabs -->
+              <div id="pos-subcat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <div id="items-grid" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
           </div>
@@ -1054,7 +1056,7 @@ body {
       </div>
       <div>
         <label class="input-label">Apps Script URL</label>
-        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbzOBLN5JkVn-fMo65pQTpHUliOzolBnAgVRweO0U90MvtUdZpU3NF7wiJIYq59z8xH6/exec">
+        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec">
       </div>
     </div>
     <div class="modal-footer">
@@ -1233,44 +1235,109 @@ function toggleSidebar() {
 
 // ============ ITEM SEARCH ============
 let itemTab = 'rent';
-let activePOSCat = 'Бүгд';
+let activePOSCat = null;    // active category id (null = бүгд)
+let activePOSSubCat = null; // active subcategory id
+let categories = [];        // Sheet-ээс татсан ангиллууд
+
+async function loadCategories() {
+  const scriptUrl = localStorage.getItem('diy_script_url') || '';
+  if (!scriptUrl) return;
+  try {
+    const resp = await fetch(scriptUrl + '?action=getCategories', { redirect: 'follow' });
+    const json = await resp.json();
+    categories = Array.isArray(json) ? json : [];
+    renderPosCatTabs();
+  } catch(e) {
+    console.log('Categories татаж чадсангүй:', e);
+  }
+}
 
 function renderPosCatTabs() {
   const scroll = document.getElementById('pos-cat-scroll');
   if (!scroll) return;
-  const cats = ['Бүгд', ...new Set(
-    state.inventory.filter(i => (i.type||'rent') === itemTab).map(i => i.cat).filter(Boolean)
-  )];
-  scroll.innerHTML = cats.map(c =>
-    `<button class="pos-cat-tab${c===activePOSCat?' active':''}" data-cat="${c}">${c}</button>`
-  ).join('');
-  // Event listener-ийг шинэчлэнэ
-  scroll.onclick = function(e) {
-    const btn = e.target.closest('.pos-cat-tab');
+
+  // Эцэг ангиллууд (parent_id = null)
+  const parents = categories.filter(c => !c.parent_id);
+  // Хүүхэд ангиллууд (сонгосон эцэгийнх)
+  const children = activePOSCat
+    ? categories.filter(c => c.parent_id === activePOSCat)
+    : [];
+
+  let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="" data-level="parent">Бүгд</button>`;
+
+  // Эцэг ангиллууд
+  parents.forEach(c => {
+    const isActive = activePOSCat === c.id;
+    html += `<button class="pos-cat-tab${isActive?' active':''}" data-id="${c.id}" data-level="parent">${c.name}</button>`;
+  });
+
+  scroll.innerHTML = html;
+
+  // Хүүхэд ангиллууд (2-р мөр)
+  const subScroll = document.getElementById('pos-subcat-scroll');
+  if (subScroll) {
+    if (children.length > 0) {
+      let subHtml = `<button class="pos-cat-tab${!activePOSSubCat?' active':''}" data-id="" data-level="child">Бүгд</button>`;
+      children.forEach(c => {
+        const isActive = activePOSSubCat === c.id;
+        subHtml += `<button class="pos-cat-tab${isActive?' active':''}" data-id="${c.id}" data-level="child">${c.name}</button>`;
+      });
+      subScroll.innerHTML = subHtml;
+      subScroll.style.display = 'flex';
+    } else {
+      subScroll.innerHTML = '';
+      subScroll.style.display = 'none';
+    }
+  }
+
+  // Event listeners
+  scroll.onclick = function(ev) {
+    const btn = ev.target.closest('.pos-cat-tab');
     if (!btn) return;
-    activePOSCat = btn.dataset.cat;
+    activePOSCat = btn.dataset.id ? Number(btn.dataset.id) : null;
+    activePOSSubCat = null;
     renderPosCatTabs();
     filterItems();
   };
+
+  if (subScroll) {
+    subScroll.onclick = function(ev) {
+      const btn = ev.target.closest('.pos-cat-tab');
+      if (!btn) return;
+      activePOSSubCat = btn.dataset.id ? Number(btn.dataset.id) : null;
+      renderPosCatTabs();
+      filterItems();
+    };
+  }
 }
 
-function selectPOSCat(c) {
-  activePOSCat = c;
-  renderPosCatTabs();
-  filterItems();
+function getCatName(id) {
+  const c = categories.find(c => c.id === id);
+  return c ? c.name : '';
 }
 
 function filterItems() {
   const q = (document.getElementById('item-search')?.value || '').toLowerCase();
   const icons = {
     'Бөмбөлөг':'🎈','Цэцэг':'💐','Дэвсгэр':'🎪','Гэрэлт тоо':'🔢','Самбар':'🪧','Sequin':'✨',
-    'Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Бусад':'🎁'
+    'Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Арк':'🎪','Бусад':'🎁'
   };
-  const filtered = state.inventory.filter(i =>
-    (i.type||'rent') === itemTab &&
-    (activePOSCat === 'Бүгд' || i.cat === activePOSCat) &&
-    (!q || i.name.toLowerCase().includes(q) || (i.cat||'').toLowerCase().includes(q) || (i.color||'').toLowerCase().includes(q))
-  );
+
+  // Идэвхтэй ангиллын нэр
+  const activeCatName = activePOSCat ? getCatName(activePOSCat) : null;
+  const activeSubCatName = activePOSSubCat ? getCatName(activePOSSubCat) : null;
+
+  const filtered = state.inventory.filter(i => {
+    const typeMatch = (i.type||'rent') === itemTab;
+    const catMatch = !activeCatName || i.cat === activeCatName;
+    const subMatch = !activeSubCatName || i.subcat === activeSubCatName;
+    const qMatch = !q || i.name.toLowerCase().includes(q) ||
+      (i.cat||'').toLowerCase().includes(q) ||
+      (i.subcat||'').toLowerCase().includes(q) ||
+      (i.color||'').toLowerCase().includes(q);
+    return typeMatch && catMatch && subMatch && qMatch;
+  });
+
   const grid = document.getElementById('items-grid');
   if (!grid) return;
   grid.innerHTML = filtered.map(item => `
@@ -1291,13 +1358,14 @@ function filterItems() {
         </div>
       </div>
     </button>
-  `).join('') || `<div class="empty-state" style="grid-column:span 2;padding:20px"><div class="es-icon">🔍</div><div class="es-text">${q?`"${q}" олдсонгүй`:'Бараа байхгүй'}</div></div>`;
+  `).join('') || `<div class="empty-state" style="padding:20px"><div class="es-icon">🔍</div><div class="es-text">${q?`"${q}" олдсонгүй`:'Бараа байхгүй'}</div></div>`;
 }
 
 function renderItemsGrid() { renderPosCatTabs(); filterItems(); }
 function switchItemTab(t) {
   itemTab = t;
-  activePOSCat = 'Бүгд';
+  activePOSCat = null;
+  activePOSSubCat = null;
   document.getElementById('itab-rent').className = 'btn btn-sm ' + (t==='rent'?'btn-primary':'btn-outline');
   document.getElementById('itab-sell').className = 'btn btn-sm ' + (t==='sell'?'btn-gold':'btn-outline');
   renderPosCatTabs();
@@ -2179,7 +2247,7 @@ function renderPayments() {
 
 // ============ ONLINE ORDERS ============
 const ORDER_PAGE_URL = 'https://uyansofts.github.io/diy-party-pos/order.html';
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOBLN5JkVn-fMo65pQTpHUliOzolBnAgVRweO0U90MvtUdZpU3NF7wiJIYq59z8xH6/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec';
 
 function copyOrderLink() {
   navigator.clipboard?.writeText(ORDER_PAGE_URL).then(() => {
@@ -2404,7 +2472,7 @@ loadState();
 
 // Load saved script URL
 try {
-  const newUrl = 'https://script.google.com/macros/s/AKfycbzOBLN5JkVn-fMo65pQTpHUliOzolBnAgVRweO0U90MvtUdZpU3NF7wiJIYq59z8xH6/exec';
+  const newUrl = 'https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec';
   localStorage.setItem('diy_script_url', newUrl);
   document.getElementById('script-url').value = newUrl;
 } catch(e){}
@@ -2436,6 +2504,7 @@ function showItemsUI(success) {
     if (searchRow) searchRow.style.display = 'flex';
     if (catScroll) catScroll.style.display = 'flex';
     if (tabBtns) tabBtns.style.display = 'flex';
+    loadCategories();
   }
 }
 
@@ -2465,7 +2534,7 @@ async function autoSyncInventory() {
   if (catScroll) catScroll.style.display = 'none';
   if (tabBtns) tabBtns.style.display = 'none';
 
-  const scriptUrl = 'https://script.google.com/macros/s/AKfycbzOBLN5JkVn-fMo65pQTpHUliOzolBnAgVRweO0U90MvtUdZpU3NF7wiJIYq59z8xH6/exec';
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec';
 
   try {
     const resp = await fetch(scriptUrl, { redirect: 'follow' });
