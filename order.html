@@ -131,6 +131,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
         <div class="cat-scroll" id="cat-tabs" style="display:none"></div>
         <!-- 2-р мөр: Хүүхэд ангиллууд -->
         <div class="cat-scroll" id="subcat-tabs" style="display:none;margin-top:4px"></div>
+        <!-- 3-р мөр: Хүүхдийн хүүхэд -->
+        <div class="cat-scroll" id="grandcat-tabs" style="display:none;margin-top:4px"></div>
         <!-- Search -->
         <div class="search-wrap" id="search-wrap" style="display:none">
           <span class="search-icon">🔍</span>
@@ -333,9 +335,11 @@ function getCatName(id){ const c=categories.find(c=>c.id===id); return c?c.name:
 
 function renderCatTabs(){
   const el=document.getElementById('cat-tabs');
+  const subEl=document.getElementById('subcat-tabs');
+  const grandEl=document.getElementById('grandcat-tabs');
   if(!el)return;
 
-  // Эцэг ангиллууд
+  // 1-р түвшин
   const parents=categories.filter(c=>!c.parent_id);
   let html=`<button class="cat-tab${!activeCatId?' active':''}" data-id="">Бүгд</button>`;
   parents.forEach(c=>{
@@ -346,42 +350,53 @@ function renderCatTabs(){
     const btn=ev.target.closest('.cat-tab');
     if(!btn)return;
     activeCatId=btn.dataset.id?Number(btn.dataset.id):null;
-    activeSubCatId=null;
+    activeSubCatId=null; window._activeGrandId=null;
     const cat=categories.find(c=>c.id===activeCatId);
-    if(cat&&cat.sheet){
-      loadAndShowSheet(cat.sheet);
-    } else {
-      renderCatTabs();
-      renderOrderItems();
-    }
+    if(cat&&cat.sheet){loadAndShowSheet(cat.sheet);}
+    else{renderCatTabs();renderOrderItems();}
   };
 
-  // Хүүхэд ангиллууд
-  const subEl=document.getElementById('subcat-tabs');
-  if(!subEl)return;
+  // 2-р түвшин
   const children=activeCatId?categories.filter(c=>c.parent_id===activeCatId):[];
-  if(children.length>0){
-    let subHtml=`<button class="cat-tab${!activeSubCatId?' active':''}" data-id="">Бүгд</button>`;
-    children.forEach(c=>{
-      subHtml+=`<button class="cat-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
-    });
-    subEl.innerHTML=subHtml;
-    subEl.style.display='flex';
-    subEl.onclick=async function(ev){
-      const btn=ev.target.closest('.cat-tab');
-      if(!btn)return;
-      activeSubCatId=btn.dataset.id?Number(btn.dataset.id):null;
-      const cat=categories.find(c=>c.id===activeSubCatId);
-      if(cat&&cat.sheet){
-        await loadAndShowSheet(cat.sheet);
-      } else {
-        renderCatTabs();
-        renderOrderItems();
-      }
-    };
-  } else {
-    subEl.innerHTML='';
-    subEl.style.display='none';
+  if(subEl){
+    if(children.length>0){
+      let subHtml=`<button class="cat-tab${!activeSubCatId?' active':''}" data-id="">Бүгд</button>`;
+      children.forEach(c=>{
+        subHtml+=`<button class="cat-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+      });
+      subEl.innerHTML=subHtml;
+      subEl.style.display='flex';
+      subEl.onclick=function(ev){
+        const btn=ev.target.closest('.cat-tab');
+        if(!btn)return;
+        activeSubCatId=btn.dataset.id?Number(btn.dataset.id):null;
+        window._activeGrandId=null;
+        const cat=categories.find(c=>c.id===activeSubCatId);
+        if(cat&&cat.sheet){loadAndShowSheet(cat.sheet);}
+        else{renderCatTabs();renderOrderItems();}
+      };
+    }else{subEl.innerHTML='';subEl.style.display='none';}
+  }
+
+  // 3-р түвшин
+  const grandChildren=activeSubCatId?categories.filter(c=>c.parent_id===activeSubCatId):[];
+  if(grandEl){
+    if(grandChildren.length>0){
+      let gHtml=`<button class="cat-tab${!window._activeGrandId?' active':''}" data-id="">Бүгд</button>`;
+      grandChildren.forEach(c=>{
+        gHtml+=`<button class="cat-tab${window._activeGrandId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+      });
+      grandEl.innerHTML=gHtml;
+      grandEl.style.display='flex';
+      grandEl.onclick=function(ev){
+        const btn=ev.target.closest('.cat-tab');
+        if(!btn)return;
+        window._activeGrandId=btn.dataset.id?Number(btn.dataset.id):null;
+        const cat=categories.find(c=>c.id===window._activeGrandId);
+        if(cat&&cat.sheet){loadAndShowSheet(cat.sheet);}
+        else{renderCatTabs();renderOrderItems();}
+      };
+    }else{grandEl.innerHTML='';grandEl.style.display='none';}
   }
 }
 
@@ -461,13 +476,17 @@ function renderOrderItems(){
   const q=(document.getElementById('o-search')?.value||'').toLowerCase();
   const activeCatName=activeCatId?getCatName(activeCatId):null;
   const activeSubCatName=activeSubCatId?getCatName(activeSubCatId):null;
+  const activeGrandName=window._activeGrandId?getCatName(window._activeGrandId):null;
   const childNames=activeCatId?categories.filter(c=>c.parent_id===activeCatId).map(c=>c.name):[];
+  const grandNames=activeSubCatId?categories.filter(c=>c.parent_id===activeSubCatId).map(c=>c.name):[];
 
   const filtered=inventory.filter(i=>{
     if(!i.qty||i.qty<1)return false;
     let catMatch=true;
-    if(activeSubCatName){
-      catMatch=i.subcat===activeSubCatName||i.cat===activeSubCatName;
+    if(activeGrandName){
+      catMatch=i.subcat===activeGrandName||i.cat===activeGrandName;
+    } else if(activeSubCatName){
+      catMatch=i.subcat===activeSubCatName||i.cat===activeSubCatName||grandNames.includes(i.subcat)||grandNames.includes(i.cat);
     } else if(activeCatName){
       catMatch=i.cat===activeCatName||childNames.includes(i.cat)||childNames.includes(i.subcat);
     }

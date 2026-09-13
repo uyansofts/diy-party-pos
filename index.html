@@ -568,9 +568,11 @@ body {
                 </button>
               </div>
               <!-- 1-р мөр: Эцэг ангиллууд (parent_id=null) -->
-              <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:6px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:4px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <!-- 2-р мөр: Хүүхэд ангиллууд -->
-              <div id="pos-subcat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="pos-subcat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:4px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <!-- 3-р мөр: Хүүхдийн хүүхэд -->
+              <div id="pos-grandcat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <div id="items-grid" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
           </div>
@@ -1250,65 +1252,75 @@ async function loadCategories() {
 
 function renderPosCatTabs() {
   const scroll = document.getElementById('pos-cat-scroll');
+  const subScroll = document.getElementById('pos-subcat-scroll');
+  const grandScroll = document.getElementById('pos-grandcat-scroll');
   if (!scroll) return;
 
+  // 1-р түвшин: parent_id=null
   const parents = categories.filter(c => !c.parent_id);
-  let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="" data-level="parent">Бүгд</button>`;
+  let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="">Бүгд</button>`;
   parents.forEach(c => {
-    html += `<button class="pos-cat-tab${activePOSCat===c.id?' active':''}" data-id="${c.id}" data-level="parent">${c.name}</button>`;
+    html += `<button class="pos-cat-tab${activePOSCat===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
   });
   scroll.innerHTML = html;
-
   scroll.onclick = function(ev) {
     const btn = ev.target.closest('.pos-cat-tab');
     if (!btn) return;
     activePOSCat = btn.dataset.id ? Number(btn.dataset.id) : null;
     activePOSSubCat = null;
-    // sheet байвал тэр sheet-ийг татна
+    window._activePOSGrand = null;
     const cat = categories.find(c => c.id === activePOSCat);
-    if (cat && cat.sheet) {
-      loadAndShowSheet(cat.sheet);
-    } else {
-      renderPosCatTabs();
-      filterItems();
-    }
+    if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
+    else { renderPosCatTabs(); filterItems(); }
   };
 
-  // Хүүхэд ангиллууд
-  const subScroll = document.getElementById('pos-subcat-scroll');
-  if (!subScroll) return;
+  // 2-р түвшин: parent_id = activePOSCat
   const children = activePOSCat ? categories.filter(c => c.parent_id === activePOSCat) : [];
-  if (children.length > 0) {
-    let subHtml = `<button class="pos-cat-tab${!activePOSSubCat?' active':''}" data-id="" data-level="child">Бүгд</button>`;
-    children.forEach(c => {
-      subHtml += `<button class="pos-cat-tab${activePOSSubCat===c.id?' active':''}" data-id="${c.id}" data-level="child">${c.name}</button>`;
-    });
-    subScroll.innerHTML = subHtml;
-    subScroll.style.display = 'flex';
+  if (subScroll) {
+    if (children.length > 0) {
+      let subHtml = `<button class="pos-cat-tab${!activePOSSubCat?' active':''}" data-id="">Бүгд</button>`;
+      children.forEach(c => {
+        subHtml += `<button class="pos-cat-tab${activePOSSubCat===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+      });
+      subScroll.innerHTML = subHtml;
+      subScroll.style.display = 'flex';
+      subScroll.onclick = function(ev) {
+        const btn = ev.target.closest('.pos-cat-tab');
+        if (!btn) return;
+        activePOSSubCat = btn.dataset.id ? Number(btn.dataset.id) : null;
+        window._activePOSGrand = null;
+        const cat = categories.find(c => c.id === activePOSSubCat);
+        if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
+        else { renderPosCatTabs(); filterItems(); }
+      };
+    } else {
+      subScroll.innerHTML = '';
+      subScroll.style.display = 'none';
+    }
+  }
 
-    subScroll.onclick = async function(ev) {
-      const btn = ev.target.closest('.pos-cat-tab');
-      if (!btn) return;
-      activePOSSubCat = btn.dataset.id ? Number(btn.dataset.id) : null;
-      const cat = categories.find(c => c.id === activePOSSubCat);
-      if (cat && cat.sheet) {
-        await loadAndShowSheet(cat.sheet);
-      } else {
-        // 3-р түвшний хүүхэд ангиллууд
-        const grandChildren = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat) : [];
-        const grandScroll = document.getElementById('pos-subcat-scroll');
-        if (grandChildren.length > 0 && grandScroll) {
-          let gHtml = subScroll.innerHTML; // keep existing
-          // sub-sub tabs-ийг дараагийн мөрт харуулна
-          // TODO: 3-р түвшин
-        }
-        renderPosCatTabs();
-        filterItems();
-      }
-    };
-  } else {
-    subScroll.innerHTML = '';
-    subScroll.style.display = 'none';
+  // 3-р түвшин: parent_id = activePOSSubCat
+  const grandChildren = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat) : [];
+  if (grandScroll) {
+    if (grandChildren.length > 0) {
+      let gHtml = `<button class="pos-cat-tab${!window._activePOSGrand?' active':''}" data-id="">Бүгд</button>`;
+      grandChildren.forEach(c => {
+        gHtml += `<button class="pos-cat-tab${window._activePOSGrand===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+      });
+      grandScroll.innerHTML = gHtml;
+      grandScroll.style.display = 'flex';
+      grandScroll.onclick = function(ev) {
+        const btn = ev.target.closest('.pos-cat-tab');
+        if (!btn) return;
+        window._activePOSGrand = btn.dataset.id ? Number(btn.dataset.id) : null;
+        const cat = categories.find(c => c.id === window._activePOSGrand);
+        if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
+        else { renderPosCatTabs(); filterItems(); }
+      };
+    } else {
+      grandScroll.innerHTML = '';
+      grandScroll.style.display = 'none';
+    }
   }
 }
 
@@ -1398,16 +1410,16 @@ function filterItems() {
 
   const activeCatName = activePOSCat ? getCatName(activePOSCat) : null;
   const activeSubCatName = activePOSSubCat ? getCatName(activePOSSubCat) : null;
-
-  // Сонгосон ангиллын бүх хүүхэд ангиллын нэрүүд
-  const childNames = activePOSCat
-    ? categories.filter(c => c.parent_id === activePOSCat).map(c => c.name)
-    : [];
+  const activeGrandName = window._activePOSGrand ? getCatName(window._activePOSGrand) : null;
+  const childNames = activePOSCat ? categories.filter(c => c.parent_id === activePOSCat).map(c => c.name) : [];
+  const grandNames = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat).map(c => c.name) : [];
 
   const filtered = state.inventory.filter(i => {
     let catMatch = true;
-    if (activeSubCatName) {
-      catMatch = i.subcat === activeSubCatName || i.cat === activeSubCatName;
+    if (activeGrandName) {
+      catMatch = i.subcat === activeGrandName || i.cat === activeGrandName;
+    } else if (activeSubCatName) {
+      catMatch = i.subcat === activeSubCatName || i.cat === activeSubCatName || grandNames.includes(i.subcat) || grandNames.includes(i.cat);
     } else if (activeCatName) {
       catMatch = i.cat === activeCatName || childNames.includes(i.cat) || childNames.includes(i.subcat);
     }
