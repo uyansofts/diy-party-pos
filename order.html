@@ -134,6 +134,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
         </div>
         <!-- Category scroll -->
         <div class="cat-scroll" id="cat-tabs" style="display:none"></div>
+        <!-- Subcategory scroll -->
+        <div class="cat-scroll" id="subcat-tabs" style="display:none;margin-top:4px"></div>
         <!-- Search -->
         <div class="search-wrap" id="search-wrap" style="display:none">
           <span class="search-icon">🔍</span>
@@ -273,7 +275,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
 </div>
 
 <script>
-const SCRIPT_URL ='https://script.google.com/macros/s/AKfycbzOBLN5JkVn-fMo65pQTpHUliOzolBnAgVRweO0U90MvtUdZpU3NF7wiJIYq59z8xH6/exec';
+const SCRIPT_URL ='https://script.google.com/macros/s/AKfycbwvx4UNhWwPQOS6g3xt80eBfjtMJ0CR65tfZx6ZJoo1s3m9PdTBSSs6QBtfIJKcJMNx/exec';
 const icons = {'Бөмбөлөг':'🎈','Цэцэг':'💐','Дэвсгэр':'🎪','Гэрэлт тоо':'🔢','Самбар':'🪧','Sequin':'✨','Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Бусад':'🎁'};
 let inventory=[], cart=[], oTab='rent', activeCat='Бүгд';
 
@@ -308,6 +310,7 @@ async function loadInventory(){
     document.getElementById('type-tabs-wrap').style.display='flex';
     document.getElementById('cat-tabs').style.display='flex';
     document.getElementById('search-wrap').style.display='block';
+    loadCategories();
     renderCatTabs();
     renderOrderItems();
   }catch(e){
@@ -320,8 +323,23 @@ async function loadInventory(){
   }
 }
 
+let categories=[];
+let activeCatId=null;
+let activeSubCatId=null;
+
+async function loadCategories(){
+  try{
+    const resp=await fetch(SCRIPT_URL+'?action=getCategories',{redirect:'follow'});
+    const json=await resp.json();
+    categories=Array.isArray(json)?json:[];
+    renderCatTabs();
+  }catch(e){ console.log('Categories алдаа:',e); }
+}
+
+function getCatName(id){ const c=categories.find(c=>c.id===id); return c?c.name:''; }
+
 function switchOTab(t){
-  oTab=t; activeCat='Бүгд';
+  oTab=t; activeCatId=null; activeSubCatId=null;
   document.getElementById('otab-rent').className='type-tab'+(t==='rent'?' active':'');
   document.getElementById('otab-sell').className='type-tab'+(t==='sell'?' active':'');
   renderCatTabs(); renderOrderItems();
@@ -329,32 +347,92 @@ function switchOTab(t){
 
 function renderCatTabs(){
   const el=document.getElementById('cat-tabs');
-  const cats=['Бүгд',...new Set(inventory.filter(i=>i.type===oTab).map(i=>i.cat).filter(Boolean))];
-  el.innerHTML=cats.map(c=>
-    `<button class="cat-tab${c===activeCat?' active':''}" data-cat="${c}">${c}</button>`
-  ).join('');
-  el.onclick=function(e){
-    const btn=e.target.closest('.cat-tab');
+  if(!el)return;
+
+  // Эцэг ангиллууд
+  const parents=categories.filter(c=>!c.parent_id);
+  let html=`<button class="cat-tab${!activeCatId?' active':''}" data-id="" data-level="parent">Бүгд</button>`;
+  parents.forEach(c=>{
+    html+=`<button class="cat-tab${activeCatId===c.id?' active':''}" data-id="${c.id}" data-level="parent">${c.name}</button>`;
+  });
+  el.innerHTML=html;
+  el.onclick=function(ev){
+    const btn=ev.target.closest('.cat-tab');
     if(!btn)return;
-    activeCat=btn.dataset.cat;
+    activeCatId=btn.dataset.id?Number(btn.dataset.id):null;
+    activeSubCatId=null;
     renderCatTabs();
     renderOrderItems();
   };
+
+  // Хүүхэд ангиллууд
+  const subEl=document.getElementById('subcat-tabs');
+  if(!subEl)return;
+  const children=activeCatId?categories.filter(c=>c.parent_id===activeCatId):[];
+  if(children.length>0){
+    let subHtml=`<button class="cat-tab${!activeSubCatId?' active':''}" data-id="" data-level="child">Бүгд</button>`;
+    children.forEach(c=>{
+      subHtml+=`<button class="cat-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}" data-level="child">${c.name}</button>`;
+    });
+    subEl.innerHTML=subHtml;
+    subEl.style.display='flex';
+    subEl.onclick=async function(ev){
+      const btn=ev.target.closest('.cat-tab');
+      if(!btn)return;
+      activeSubCatId=btn.dataset.id?Number(btn.dataset.id):null;
+      // sheet нэр байвал тухайн sheet-ийн бараануудыг татна
+      const cat=categories.find(c=>c.id===activeSubCatId);
+      if(cat&&cat.sheet){
+        await loadSheetProducts(cat.sheet);
+      }
+      renderCatTabs();
+      renderOrderItems();
+    };
+  } else {
+    subEl.innerHTML='';
+    subEl.style.display='none';
+  }
 }
 
-function selectCat(c){
-  activeCat=c;
-  renderCatTabs();
-  renderOrderItems();
+async function loadSheetProducts(sheetName){
+  try{
+    const resp=await fetch(SCRIPT_URL+'?action=getSheetProducts&sheet='+encodeURIComponent(sheetName),{redirect:'follow'});
+    const json=await resp.json();
+    if(!Array.isArray(json)||!json.length)return;
+    const str=v=>String(v==null?'':v).trim();
+    const newItems=json.filter(row=>str(row['Product Name'])).map((row,idx)=>({
+      id:Date.now()+idx,
+      name:str(row['Product Name']),
+      cat:str(row['Category'])||'Бусад',
+      subcat:str(row['Subcategory'])||'',
+      type:(()=>{const t=str(row['Type']||'').toLowerCase();return(t==='sale'||t==='sell')?'sell':'rent';})(),
+      qty:parseInt(row['Stock']||0)||0,
+      price:parseFloat(str(row['Selling_price']||'0').replace(/[₮,\s]/g,''))||0,
+      color:str(row['Color']),size:str(row['Size']),
+      imageUrl:fixImageUrl(str(row['Image_url']||row['image_url']||'')),
+      note:'',status:'available',
+    }));
+    // Тухайн sheet-ийн бараануудыг нэмнэ (давхардахгүйгээр)
+    newItems.forEach(ni=>{
+      if(!inventory.find(i=>i.name===ni.name&&i.cat===ni.cat)){
+        inventory.push(ni);
+      }
+    });
+  }catch(e){ console.log('Sheet татах алдаа:',e); }
 }
 
 function renderOrderItems(){
   const q=(document.getElementById('o-search')?.value||'').toLowerCase();
-  const filtered=inventory.filter(i=>
-    i.type===oTab && i.qty>0 &&
-    (activeCat==='Бүгд'||i.cat===activeCat) &&
-    (!q||i.name.toLowerCase().includes(q)||(i.cat||'').toLowerCase().includes(q)||(i.subcat||'').toLowerCase().includes(q))
-  );
+  const activeCatName=activeCatId?getCatName(activeCatId):null;
+  const activeSubCatName=activeSubCatId?getCatName(activeSubCatId):null;
+
+  const filtered=inventory.filter(i=>{
+    const typeMatch=i.type===oTab&&i.qty>0;
+    const catMatch=!activeCatName||(i.cat===activeCatName)||(i.subcat===activeCatName);
+    const subMatch=!activeSubCatName||(i.subcat===activeSubCatName)||(i.cat===activeSubCatName);
+    const qMatch=!q||i.name.toLowerCase().includes(q)||(i.cat||'').toLowerCase().includes(q)||(i.subcat||'').toLowerCase().includes(q);
+    return typeMatch&&catMatch&&subMatch&&qMatch;
+  });
   const grid=document.getElementById('order-items-grid');
   const cartItem=id=>cart.find(c=>c.id===id);
   grid.innerHTML=filtered.map(item=>{

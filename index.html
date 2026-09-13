@@ -1056,7 +1056,7 @@ body {
       </div>
       <div>
         <label class="input-label">Apps Script URL</label>
-        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec">
+        <input class="input-field" id="script-url" value="https://script.google.com/macros/s/AKfycbwvx4UNhWwPQOS6g3xt80eBfjtMJ0CR65tfZx6ZJoo1s3m9PdTBSSs6QBtfIJKcJMNx/exec">
       </div>
     </div>
     <div class="modal-footer">
@@ -2247,7 +2247,7 @@ function renderPayments() {
 
 // ============ ONLINE ORDERS ============
 const ORDER_PAGE_URL = 'https://uyansofts.github.io/diy-party-pos/order.html';
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvx4UNhWwPQOS6g3xt80eBfjtMJ0CR65tfZx6ZJoo1s3m9PdTBSSs6QBtfIJKcJMNx/exec';
 
 function copyOrderLink() {
   navigator.clipboard?.writeText(ORDER_PAGE_URL).then(() => {
@@ -2472,7 +2472,7 @@ loadState();
 
 // Load saved script URL
 try {
-  const newUrl = 'https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec';
+  const newUrl = 'https://script.google.com/macros/s/AKfycbwvx4UNhWwPQOS6g3xt80eBfjtMJ0CR65tfZx6ZJoo1s3m9PdTBSSs6QBtfIJKcJMNx/exec';
   localStorage.setItem('diy_script_url', newUrl);
   document.getElementById('script-url').value = newUrl;
 } catch(e){}
@@ -2534,7 +2534,7 @@ async function autoSyncInventory() {
   if (catScroll) catScroll.style.display = 'none';
   if (tabBtns) tabBtns.style.display = 'none';
 
-  const scriptUrl = 'https://script.google.com/macros/s/AKfycbzN-Z_a-FKcnrPBUkDac8Y5-8tvwlUeZ151U94UwWJJEccwSsVvFeFjbtgCwMpRVe7n/exec';
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbwvx4UNhWwPQOS6g3xt80eBfjtMJ0CR65tfZx6ZJoo1s3m9PdTBSSs6QBtfIJKcJMNx/exec';
 
   try {
     const resp = await fetch(scriptUrl, { redirect: 'follow' });
