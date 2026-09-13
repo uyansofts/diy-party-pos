@@ -127,14 +127,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
     <div class="card">
       <div class="card-header">🎁 Бараа сонгох</div>
       <div class="card-body">
-        <!-- Type tabs -->
-        <div class="type-tabs" id="type-tabs-wrap" style="display:none">
-          <button class="type-tab active" id="otab-rent" onclick="switchOTab('rent')">🔄 Түрээс</button>
-          <button class="type-tab" id="otab-sell" onclick="switchOTab('sell')">🛍️ Зарах</button>
-        </div>
-        <!-- Category scroll -->
+        <!-- 1-р мөр: Эцэг ангиллууд -->
         <div class="cat-scroll" id="cat-tabs" style="display:none"></div>
-        <!-- Subcategory scroll -->
+        <!-- 2-р мөр: Хүүхэд ангиллууд -->
         <div class="cat-scroll" id="subcat-tabs" style="display:none;margin-top:4px"></div>
         <!-- Search -->
         <div class="search-wrap" id="search-wrap" style="display:none">
@@ -307,11 +302,9 @@ async function loadInventory(){
       imageUrl:fixImageUrl(str(r['Image_url']||r['image_url']||r['Imageurl']||'')),
     }));
     document.getElementById('order-loading').style.display='none';
-    document.getElementById('type-tabs-wrap').style.display='flex';
     document.getElementById('cat-tabs').style.display='flex';
     document.getElementById('search-wrap').style.display='block';
     loadCategories();
-    renderCatTabs();
     renderOrderItems();
   }catch(e){
     document.getElementById('order-loading').innerHTML = `
@@ -428,7 +421,7 @@ function renderOrderItems(){
   const childNames=activeCatId?categories.filter(c=>c.parent_id===activeCatId).map(c=>c.name):[];
 
   const filtered=inventory.filter(i=>{
-    const typeMatch=i.type===oTab&&i.qty>0;
+    if(!i.qty||i.qty<1)return false;
     let catMatch=true;
     if(activeSubCatName){
       catMatch=i.subcat===activeSubCatName||i.cat===activeSubCatName;
@@ -436,7 +429,7 @@ function renderOrderItems(){
       catMatch=i.cat===activeCatName||childNames.includes(i.cat)||childNames.includes(i.subcat);
     }
     const qMatch=!q||i.name.toLowerCase().includes(q)||(i.cat||'').toLowerCase().includes(q)||(i.subcat||'').toLowerCase().includes(q);
-    return typeMatch&&catMatch&&qMatch;
+    return catMatch&&qMatch;
   });
   const grid=document.getElementById('order-items-grid');
   const cartItem=id=>cart.find(c=>c.id===id);

@@ -541,10 +541,6 @@ body {
           <div class="card" style="margin-bottom:16px">
             <div class="card-header">
               <span>🎁 Бараа сонгох</span>
-              <div id="item-tab-btns" style="display:none;gap:6px">
-                <button class="btn btn-sm btn-primary" id="itab-rent" onclick="switchItemTab('rent')">🔄 Түрээс</button>
-                <button class="btn btn-sm btn-outline" id="itab-sell" onclick="switchItemTab('sell')">🛍️ Зарах</button>
-              </div>
             </div>
             <div class="card-body">
               <!-- Loading spinner -->
@@ -571,9 +567,9 @@ body {
                   📷
                 </button>
               </div>
-              <!-- Category scroll tabs -->
+              <!-- 1-р мөр: Эцэг ангиллууд (parent_id=null) -->
               <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:6px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
-              <!-- Subcategory scroll tabs -->
+              <!-- 2-р мөр: Хүүхэд ангиллууд -->
               <div id="pos-subcat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <div id="items-grid" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
@@ -1332,20 +1328,17 @@ function filterItems() {
     : [];
 
   const filtered = state.inventory.filter(i => {
-    const typeMatch = (i.type||'rent') === itemTab;
     let catMatch = true;
     if (activeSubCatName) {
-      // Хүүхэд ангилал сонгосон — subcat эсвэл cat-аар шүүнэ
       catMatch = i.subcat === activeSubCatName || i.cat === activeSubCatName;
     } else if (activeCatName) {
-      // Эцэг ангилал сонгосон — cat эсвэл хүүхэд ангиллуудаар шүүнэ
       catMatch = i.cat === activeCatName || childNames.includes(i.cat) || childNames.includes(i.subcat);
     }
     const qMatch = !q || i.name.toLowerCase().includes(q) ||
       (i.cat||'').toLowerCase().includes(q) ||
       (i.subcat||'').toLowerCase().includes(q) ||
       (i.color||'').toLowerCase().includes(q);
-    return typeMatch && catMatch && qMatch;
+    return catMatch && qMatch;
   });
 
   const grid = document.getElementById('items-grid');
@@ -1373,11 +1366,7 @@ function filterItems() {
 
 function renderItemsGrid() { renderPosCatTabs(); filterItems(); }
 function switchItemTab(t) {
-  itemTab = t;
-  activePOSCat = null;
-  activePOSSubCat = null;
-  document.getElementById('itab-rent').className = 'btn btn-sm ' + (t==='rent'?'btn-primary':'btn-outline');
-  document.getElementById('itab-sell').className = 'btn btn-sm ' + (t==='sell'?'btn-gold':'btn-outline');
+  // Хуучин функц — category tab-аар орлуулсан
   renderPosCatTabs();
   filterItems();
 }
@@ -2497,7 +2486,6 @@ function showItemsUI(success) {
   const loading = document.getElementById('items-loading');
   const searchRow = document.getElementById('items-search-row');
   const catScroll = document.getElementById('pos-cat-scroll');
-  const tabBtns = document.getElementById('item-tab-btns');
   if (loading) {
     if (success) {
       loading.style.display = 'none';
@@ -2513,7 +2501,6 @@ function showItemsUI(success) {
   if (success) {
     if (searchRow) searchRow.style.display = 'flex';
     if (catScroll) catScroll.style.display = 'flex';
-    if (tabBtns) tabBtns.style.display = 'flex';
     loadCategories();
   }
 }
