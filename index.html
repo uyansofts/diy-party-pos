@@ -567,7 +567,9 @@ body {
                   📷
                 </button>
               </div>
-              <!-- 1-р мөр: Эцэг ангиллууд (parent_id=null) -->
+              <!-- 0-р түвшин: parent_id=0 → Type tab -->
+              <div id="type-level-tabs" style="display:none;gap:8px;margin-bottom:8px;flex-wrap:wrap"></div>
+              <!-- 1-р мөр: Эцэг ангиллууд -->
               <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:4px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <!-- 2-р мөр: Хүүхэд ангиллууд -->
               <div id="pos-subcat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:4px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
@@ -1250,31 +1252,65 @@ async function loadCategories() {
   }
 }
 
+function getAllChildNames(parentId) {
+  const direct = categories.filter(c => c.parent_id === parentId).map(c => c.name);
+  const ids = categories.filter(c => c.parent_id === parentId).map(c => c.id);
+  return [...direct, ...ids.flatMap(id => getAllChildNames(id))];
+}
+
 function renderPosCatTabs() {
+  const typeEl = document.getElementById('type-level-tabs');
   const scroll = document.getElementById('pos-cat-scroll');
   const subScroll = document.getElementById('pos-subcat-scroll');
   const grandScroll = document.getElementById('pos-grandcat-scroll');
-  if (!scroll) return;
 
-  // 1-р түвшин: parent_id=null
-  const parents = categories.filter(c => !c.parent_id);
-  let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="">Бүгд</button>`;
-  parents.forEach(c => {
-    html += `<button class="pos-cat-tab${activePOSCat===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
-  });
-  scroll.innerHTML = html;
-  scroll.onclick = function(ev) {
-    const btn = ev.target.closest('.pos-cat-tab');
-    if (!btn) return;
-    activePOSCat = btn.dataset.id ? Number(btn.dataset.id) : null;
-    activePOSSubCat = null;
-    window._activePOSGrand = null;
-    const cat = categories.find(c => c.id === activePOSCat);
-    if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
-    else { renderPosCatTabs(); filterItems(); }
-  };
+  // 0-р түвшин: parent_id=0 → Type tab
+  const typeLevel = categories.filter(c => c.parent_id === 0);
+  if (typeEl) {
+    if (typeLevel.length > 0) {
+      let typeHtml = `<button class="btn btn-sm${!window._activeTypeId?' btn-primary':' btn-outline'}" data-id="">Бүгд</button>`;
+      typeLevel.forEach(c => {
+        typeHtml += `<button class="btn btn-sm${window._activeTypeId===c.id?' btn-primary':' btn-outline'}" data-id="${c.id}">${c.name}</button>`;
+      });
+      typeEl.innerHTML = typeHtml;
+      typeEl.style.display = 'flex';
+      typeEl.onclick = function(ev) {
+        const btn = ev.target.closest('.btn');
+        if (!btn) return;
+        window._activeTypeId = btn.dataset.id ? Number(btn.dataset.id) : null;
+        activePOSCat = null; activePOSSubCat = null; window._activePOSGrand = null;
+        renderPosCatTabs(); filterItems();
+      };
+    } else { typeEl.style.display = 'none'; }
+  }
 
-  // 2-р түвшин: parent_id = activePOSCat
+  // 1-р түвшин: сонгосон type-ийн хүүхдүүд (parent_id = _activeTypeId)
+  // эсвэл parent_id=null байгаа ангиллууд
+  const parents = window._activeTypeId
+    ? categories.filter(c => c.parent_id === window._activeTypeId)
+    : categories.filter(c => !c.parent_id && c.parent_id !== 0);
+
+  if (scroll) {
+    if (parents.length > 0) {
+      let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="">Бүгд</button>`;
+      parents.forEach(c => {
+        html += `<button class="pos-cat-tab${activePOSCat===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+      });
+      scroll.innerHTML = html;
+      scroll.style.display = 'flex';
+      scroll.onclick = function(ev) {
+        const btn = ev.target.closest('.pos-cat-tab');
+        if (!btn) return;
+        activePOSCat = btn.dataset.id ? Number(btn.dataset.id) : null;
+        activePOSSubCat = null; window._activePOSGrand = null;
+        const cat = categories.find(c => c.id === activePOSCat);
+        if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
+        else { renderPosCatTabs(); filterItems(); }
+      };
+    } else { scroll.innerHTML = ''; scroll.style.display = 'none'; }
+  }
+
+  // 2-р түвшин
   const children = activePOSCat ? categories.filter(c => c.parent_id === activePOSCat) : [];
   if (subScroll) {
     if (children.length > 0) {
@@ -1293,13 +1329,10 @@ function renderPosCatTabs() {
         if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
         else { renderPosCatTabs(); filterItems(); }
       };
-    } else {
-      subScroll.innerHTML = '';
-      subScroll.style.display = 'none';
-    }
+    } else { subScroll.innerHTML = ''; subScroll.style.display = 'none'; }
   }
 
-  // 3-р түвшин: parent_id = activePOSSubCat
+  // 3-р түвшин
   const grandChildren = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat) : [];
   if (grandScroll) {
     if (grandChildren.length > 0) {
@@ -1317,10 +1350,7 @@ function renderPosCatTabs() {
         if (cat && cat.sheet) { loadAndShowSheet(cat.sheet); }
         else { renderPosCatTabs(); filterItems(); }
       };
-    } else {
-      grandScroll.innerHTML = '';
-      grandScroll.style.display = 'none';
-    }
+    } else { grandScroll.innerHTML = ''; grandScroll.style.display = 'none'; }
   }
 }
 
@@ -1408,11 +1438,14 @@ function filterItems() {
     'Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Баяр наадмын хэрэгсэл':'🎊','Арк':'🎪','Бусад':'🎁'
   };
 
+  const activeTypeName = window._activeTypeId ? getCatName(window._activeTypeId) : null;
   const activeCatName = activePOSCat ? getCatName(activePOSCat) : null;
   const activeSubCatName = activePOSSubCat ? getCatName(activePOSSubCat) : null;
   const activeGrandName = window._activePOSGrand ? getCatName(window._activePOSGrand) : null;
-  const childNames = activePOSCat ? categories.filter(c => c.parent_id === activePOSCat).map(c => c.name) : [];
-  const grandNames = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat).map(c => c.name) : [];
+
+  const typeChildNames = window._activeTypeId ? getAllChildNames(window._activeTypeId) : [];
+  const childNames = activePOSCat ? getAllChildNames(activePOSCat) : [];
+  const grandNames = activePOSSubCat ? getAllChildNames(activePOSSubCat) : [];
 
   const filtered = state.inventory.filter(i => {
     let catMatch = true;
@@ -1422,6 +1455,8 @@ function filterItems() {
       catMatch = i.subcat === activeSubCatName || i.cat === activeSubCatName || grandNames.includes(i.subcat) || grandNames.includes(i.cat);
     } else if (activeCatName) {
       catMatch = i.cat === activeCatName || childNames.includes(i.cat) || childNames.includes(i.subcat);
+    } else if (activeTypeName) {
+      catMatch = i.cat === activeTypeName || typeChildNames.includes(i.cat) || typeChildNames.includes(i.subcat);
     }
     const qMatch = !q || i.name.toLowerCase().includes(q) ||
       (i.cat||'').toLowerCase().includes(q) ||

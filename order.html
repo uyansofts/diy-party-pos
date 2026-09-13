@@ -127,6 +127,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
     <div class="card">
       <div class="card-header">🎁 Бараа сонгох</div>
       <div class="card-body">
+        <!-- 0-р түвшин: parent_id=0 → Type tab -->
+        <div class="type-tabs" id="type-level-tabs" style="display:none;margin-bottom:8px"></div>
         <!-- 1-р мөр: Эцэг ангиллууд -->
         <div class="cat-scroll" id="cat-tabs" style="display:none"></div>
         <!-- 2-р мөр: Хүүхэд ангиллууд -->
@@ -339,13 +341,42 @@ function renderCatTabs(){
   const grandEl=document.getElementById('grandcat-tabs');
   if(!el)return;
 
-  // 1-р түвшин
-  const parents=categories.filter(c=>!c.parent_id);
+  // 0-р түвшин: parent_id=0 → Type tab загвараар
+  const typeLevel=categories.filter(c=>c.parent_id===0);
+  const typeEl=document.getElementById('type-level-tabs');
+  if(typeEl){
+    if(typeLevel.length>0){
+      let typeHtml=`<button class="type-tab${!window._activeTypeId?' active':''}" data-id="">Бүгд</button>`;
+      typeLevel.forEach(c=>{
+        typeHtml+=`<button class="type-tab${window._activeTypeId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+      });
+      typeEl.innerHTML=typeHtml;
+      typeEl.style.display='flex';
+      typeEl.onclick=function(ev){
+        const btn=ev.target.closest('.type-tab');
+        if(!btn)return;
+        window._activeTypeId=btn.dataset.id?Number(btn.dataset.id):null;
+        activeCatId=null; activeSubCatId=null; window._activeGrandId=null;
+        renderCatTabs(); renderOrderItems();
+      };
+    }else{typeEl.style.display='none';}
+  }
+
+  // 1-р түвшин: parent_id=null (эцэг ангилал)
+  // Хэрэв type сонгосон бол тухайн type-ийн хүүхдүүдийг харуулна
+  let parents;
+  if(window._activeTypeId){
+    parents=categories.filter(c=>c.parent_id===window._activeTypeId);
+  } else {
+    parents=categories.filter(c=>!c.parent_id&&c.parent_id!==0);
+  }
+
   let html=`<button class="cat-tab${!activeCatId?' active':''}" data-id="">Бүгд</button>`;
   parents.forEach(c=>{
     html+=`<button class="cat-tab${activeCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
   });
   el.innerHTML=html;
+  el.style.display=parents.length>0?'flex':'none';
   el.onclick=function(ev){
     const btn=ev.target.closest('.cat-tab');
     if(!btn)return;
@@ -474,11 +505,22 @@ function toggleSheetItem(id){
 
 function renderOrderItems(){
   const q=(document.getElementById('o-search')?.value||'').toLowerCase();
+  const activeTypeName=window._activeTypeId?getCatName(window._activeTypeId):null;
   const activeCatName=activeCatId?getCatName(activeCatId):null;
   const activeSubCatName=activeSubCatId?getCatName(activeSubCatId):null;
   const activeGrandName=window._activeGrandId?getCatName(window._activeGrandId):null;
-  const childNames=activeCatId?categories.filter(c=>c.parent_id===activeCatId).map(c=>c.name):[];
-  const grandNames=activeSubCatId?categories.filter(c=>c.parent_id===activeSubCatId).map(c=>c.name):[];
+
+  // Сонгосон type-ийн бүх хүүхэд ангиллын нэрүүд (рекурсив)
+  function getAllChildNames(parentId) {
+    const direct=categories.filter(c=>c.parent_id===parentId).map(c=>c.name);
+    const ids=categories.filter(c=>c.parent_id===parentId).map(c=>c.id);
+    const nested=ids.flatMap(id=>getAllChildNames(id));
+    return [...direct,...nested];
+  }
+
+  const typeChildNames=window._activeTypeId?getAllChildNames(window._activeTypeId):[];
+  const childNames=activeCatId?getAllChildNames(activeCatId):[];
+  const grandNames=activeSubCatId?getAllChildNames(activeSubCatId):[];
 
   const filtered=inventory.filter(i=>{
     if(!i.qty||i.qty<1)return false;
@@ -489,6 +531,8 @@ function renderOrderItems(){
       catMatch=i.subcat===activeSubCatName||i.cat===activeSubCatName||grandNames.includes(i.subcat)||grandNames.includes(i.cat);
     } else if(activeCatName){
       catMatch=i.cat===activeCatName||childNames.includes(i.cat)||childNames.includes(i.subcat);
+    } else if(activeTypeName){
+      catMatch=i.cat===activeTypeName||typeChildNames.includes(i.cat)||typeChildNames.includes(i.subcat);
     }
     const qMatch=!q||i.name.toLowerCase().includes(q)||(i.cat||'').toLowerCase().includes(q)||(i.subcat||'').toLowerCase().includes(q);
     return catMatch&&qMatch;
