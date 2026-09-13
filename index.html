@@ -2625,7 +2625,6 @@ function showItemsUI(success) {
   }
   if (success) {
     if (searchRow) searchRow.style.display = 'flex';
-    if (catScroll) catScroll.style.display = 'flex';
     loadCategories();
   }
 }
@@ -2633,8 +2632,6 @@ function showItemsUI(success) {
 async function autoSyncInventory() {
   const loading = document.getElementById('items-loading');
   const searchRow = document.getElementById('items-search-row');
-  const catScroll = document.getElementById('pos-cat-scroll');
-  const tabBtns = document.getElementById('item-tab-btns');
 
   // Spinner харуулна
   if (loading) {
@@ -2653,8 +2650,6 @@ async function autoSyncInventory() {
     `;
   }
   if (searchRow) searchRow.style.display = 'none';
-  if (catScroll) catScroll.style.display = 'none';
-  if (tabBtns) tabBtns.style.display = 'none';
 
   const scriptUrl = 'https://script.google.com/macros/s/AKfycbwvx4UNhWwPQOS6g3xt80eBfjtMJ0CR65tfZx6ZJoo1s3m9PdTBSSs6QBtfIJKcJMNx/exec';
 
