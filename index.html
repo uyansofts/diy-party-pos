@@ -1252,59 +1252,136 @@ function renderPosCatTabs() {
   const scroll = document.getElementById('pos-cat-scroll');
   if (!scroll) return;
 
-  // Эцэг ангиллууд (parent_id = null)
   const parents = categories.filter(c => !c.parent_id);
-  // Хүүхэд ангиллууд (сонгосон эцэгийнх)
-  const children = activePOSCat
-    ? categories.filter(c => c.parent_id === activePOSCat)
-    : [];
-
   let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="" data-level="parent">Бүгд</button>`;
-
-  // Эцэг ангиллууд
   parents.forEach(c => {
-    const isActive = activePOSCat === c.id;
-    html += `<button class="pos-cat-tab${isActive?' active':''}" data-id="${c.id}" data-level="parent">${c.name}</button>`;
+    html += `<button class="pos-cat-tab${activePOSCat===c.id?' active':''}" data-id="${c.id}" data-level="parent">${c.name}</button>`;
   });
-
   scroll.innerHTML = html;
 
-  // Хүүхэд ангиллууд (2-р мөр)
-  const subScroll = document.getElementById('pos-subcat-scroll');
-  if (subScroll) {
-    if (children.length > 0) {
-      let subHtml = `<button class="pos-cat-tab${!activePOSSubCat?' active':''}" data-id="" data-level="child">Бүгд</button>`;
-      children.forEach(c => {
-        const isActive = activePOSSubCat === c.id;
-        subHtml += `<button class="pos-cat-tab${isActive?' active':''}" data-id="${c.id}" data-level="child">${c.name}</button>`;
-      });
-      subScroll.innerHTML = subHtml;
-      subScroll.style.display = 'flex';
-    } else {
-      subScroll.innerHTML = '';
-      subScroll.style.display = 'none';
-    }
-  }
-
-  // Event listeners
   scroll.onclick = function(ev) {
     const btn = ev.target.closest('.pos-cat-tab');
     if (!btn) return;
     activePOSCat = btn.dataset.id ? Number(btn.dataset.id) : null;
     activePOSSubCat = null;
-    renderPosCatTabs();
-    filterItems();
+    // sheet байвал тэр sheet-ийг татна
+    const cat = categories.find(c => c.id === activePOSCat);
+    if (cat && cat.sheet) {
+      loadAndShowSheet(cat.sheet);
+    } else {
+      renderPosCatTabs();
+      filterItems();
+    }
   };
 
-  if (subScroll) {
-    subScroll.onclick = function(ev) {
+  // Хүүхэд ангиллууд
+  const subScroll = document.getElementById('pos-subcat-scroll');
+  if (!subScroll) return;
+  const children = activePOSCat ? categories.filter(c => c.parent_id === activePOSCat) : [];
+  if (children.length > 0) {
+    let subHtml = `<button class="pos-cat-tab${!activePOSSubCat?' active':''}" data-id="" data-level="child">Бүгд</button>`;
+    children.forEach(c => {
+      subHtml += `<button class="pos-cat-tab${activePOSSubCat===c.id?' active':''}" data-id="${c.id}" data-level="child">${c.name}</button>`;
+    });
+    subScroll.innerHTML = subHtml;
+    subScroll.style.display = 'flex';
+
+    subScroll.onclick = async function(ev) {
       const btn = ev.target.closest('.pos-cat-tab');
       if (!btn) return;
       activePOSSubCat = btn.dataset.id ? Number(btn.dataset.id) : null;
-      renderPosCatTabs();
-      filterItems();
+      const cat = categories.find(c => c.id === activePOSSubCat);
+      if (cat && cat.sheet) {
+        await loadAndShowSheet(cat.sheet);
+      } else {
+        // 3-р түвшний хүүхэд ангиллууд
+        const grandChildren = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat) : [];
+        const grandScroll = document.getElementById('pos-subcat-scroll');
+        if (grandChildren.length > 0 && grandScroll) {
+          let gHtml = subScroll.innerHTML; // keep existing
+          // sub-sub tabs-ийг дараагийн мөрт харуулна
+          // TODO: 3-р түвшин
+        }
+        renderPosCatTabs();
+        filterItems();
+      }
     };
+  } else {
+    subScroll.innerHTML = '';
+    subScroll.style.display = 'none';
   }
+}
+
+// Тодорхой sheet-ийн бараануудыг татаж харуулна
+async function loadAndShowSheet(sheetName) {
+  const grid = document.getElementById('items-grid');
+  if (grid) grid.innerHTML = `<div style="text-align:center;padding:20px;color:#aaa">🔄 Татаж байна...</div>`;
+  try {
+    const scriptUrl = localStorage.getItem('diy_script_url') || '';
+    const resp = await fetch(scriptUrl + '?action=getSheetProducts&sheet=' + encodeURIComponent(sheetName), { redirect: 'follow' });
+    const json = await resp.json();
+    if (!Array.isArray(json) || !json.length) {
+      if (grid) grid.innerHTML = `<div style="text-align:center;padding:20px;color:#aaa">Бараа байхгүй</div>`;
+      return;
+    }
+    const str = v => String(v == null ? '' : v).trim();
+    const sheetItems = json.filter(row => str(row['Product Name'])).map((row, idx) => ({
+      id: 'sheet_' + sheetName + '_' + idx,
+      name: str(row['Product Name']),
+      cat: str(row['Category']) || sheetName,
+      subcat: str(row['Subcategory']) || '',
+      type: (()=>{ const t=str(row['Type']||'').toLowerCase(); return(t==='sale'||t==='sell')?'sell':'rent'; })(),
+      qty: parseInt(row['Stock'] || 0) || 0,
+      price: parseFloat(str(row['Selling_price']||'0').replace(/[₮,\s]/g,'')) || 0,
+      color: str(row['Color']),
+      size: str(row['Size']),
+      imageUrl: fixImageUrl(str(row['Image_url'] || row['image_url'] || '')),
+      note: '', status: 'available',
+    })).filter(i => i.qty > 0);
+
+    renderSheetItems(sheetItems);
+    renderPosCatTabs();
+  } catch(e) {
+    if (grid) grid.innerHTML = `<div style="text-align:center;padding:20px;color:#aaa">⚠️ Алдаа: ${e.message}</div>`;
+  }
+}
+
+function renderSheetItems(items) {
+  const icons = {'Бөмбөлөг':'🎈','Цэцэг':'💐','Дэвсгэр':'🎪','Гэрэлт тоо':'🔢','Самбар':'🪧','Sequin':'✨','Малгай':'🎉','Лаа':'🕯️','Шаар':'🎀','Бусад':'🎁'};
+  const grid = document.getElementById('items-grid');
+  if (!grid) return;
+  const q = (document.getElementById('item-search')?.value || '').toLowerCase();
+  const filtered = items.filter(i => !q || i.name.toLowerCase().includes(q) || (i.color||'').toLowerCase().includes(q));
+  grid.innerHTML = filtered.map(item => `
+    <button class="item-btn" onclick="addToCartById('${item.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%">
+        <div style="flex:1;min-width:0">
+          <div class="ib-name">${item.name}</div>
+          ${item.color||item.size ? `<div style="font-size:10px;color:#aaa;margin-top:2px">${[item.color,item.size].filter(Boolean).join(' / ')}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+            <div class="ib-price">${fmtMoney(item.price||0)}</div>
+            <div style="font-size:10px;color:#bbb">×${item.qty||0}</div>
+          </div>
+        </div>
+        <div style="width:60px;height:60px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#f5eef5;display:flex;align-items:center;justify-content:center">
+          ${item.imageUrl
+            ? `<img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=\\'font-size:22px\\'>${icons[item.cat]||'🎁'}</span>'">`
+            : `<span style="font-size:22px">${icons[item.cat]||'🎁'}</span>`}
+        </div>
+      </div>
+    </button>
+  `).join('') || `<div style="padding:20px;text-align:center;color:#aaa">Бараа олдсонгүй</div>`;
+
+  // sheet items-ийг state-д хадгална (cart-д нэмэхэд хэрэгтэй)
+  window._sheetItems = items;
+}
+
+function addToCartById(id) {
+  // state.inventory эсвэл _sheetItems-аас хайна
+  let item = state.inventory.find(i => String(i.id) === String(id));
+  if (!item && window._sheetItems) item = window._sheetItems.find(i => String(i.id) === String(id));
+  if (!item) return;
+  addToCart(item.id, item);
 }
 
 function getCatName(id) {
@@ -1529,10 +1606,11 @@ function showItemImage(url, name) {
 }
 
 // ============ CART ============
-function addToCart(itemId) {
-  const item = state.inventory.find(i => i.id === itemId);
+function addToCart(itemId, directItem) {
+  const item = directItem || state.inventory.find(i => String(i.id) === String(itemId)) || (window._sheetItems||[]).find(i => String(i.id) === String(itemId));
   if (!item) return;
-  const existing = state.cart.find(c => c.id === itemId);
+  const cartId = String(item.id);
+  const existing = state.cart.find(c => String(c.id) === cartId);
   const stock = item.qty || 0;
   if (existing) {
     if (existing.qty >= stock) {
@@ -1545,7 +1623,7 @@ function addToCart(itemId) {
       showToast('⚠️ Энэ бараа дууссан байна');
       return;
     }
-    state.cart.push({id: item.id, name: item.name, price: item.price, qty: 1, type: item.type||'rent', maxQty: stock});
+    state.cart.push({id: cartId, name: item.name, price: item.price, qty: 1, type: item.type||'rent', maxQty: stock});
   }
   renderCart();
 }
