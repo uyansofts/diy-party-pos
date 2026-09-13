@@ -331,22 +331,15 @@ async function loadCategories(){
 
 function getCatName(id){ const c=categories.find(c=>c.id===id); return c?c.name:''; }
 
-function switchOTab(t){
-  oTab=t; activeCatId=null; activeSubCatId=null;
-  document.getElementById('otab-rent').className='type-tab'+(t==='rent'?' active':'');
-  document.getElementById('otab-sell').className='type-tab'+(t==='sell'?' active':'');
-  renderCatTabs(); renderOrderItems();
-}
-
 function renderCatTabs(){
   const el=document.getElementById('cat-tabs');
   if(!el)return;
 
   // Эцэг ангиллууд
   const parents=categories.filter(c=>!c.parent_id);
-  let html=`<button class="cat-tab${!activeCatId?' active':''}" data-id="" data-level="parent">Бүгд</button>`;
+  let html=`<button class="cat-tab${!activeCatId?' active':''}" data-id="">Бүгд</button>`;
   parents.forEach(c=>{
-    html+=`<button class="cat-tab${activeCatId===c.id?' active':''}" data-id="${c.id}" data-level="parent">${c.name}</button>`;
+    html+=`<button class="cat-tab${activeCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
   });
   el.innerHTML=html;
   el.onclick=function(ev){
@@ -354,8 +347,13 @@ function renderCatTabs(){
     if(!btn)return;
     activeCatId=btn.dataset.id?Number(btn.dataset.id):null;
     activeSubCatId=null;
-    renderCatTabs();
-    renderOrderItems();
+    const cat=categories.find(c=>c.id===activeCatId);
+    if(cat&&cat.sheet){
+      loadAndShowSheet(cat.sheet);
+    } else {
+      renderCatTabs();
+      renderOrderItems();
+    }
   };
 
   // Хүүхэд ангиллууд
@@ -363,9 +361,9 @@ function renderCatTabs(){
   if(!subEl)return;
   const children=activeCatId?categories.filter(c=>c.parent_id===activeCatId):[];
   if(children.length>0){
-    let subHtml=`<button class="cat-tab${!activeSubCatId?' active':''}" data-id="" data-level="child">Бүгд</button>`;
+    let subHtml=`<button class="cat-tab${!activeSubCatId?' active':''}" data-id="">Бүгд</button>`;
     children.forEach(c=>{
-      subHtml+=`<button class="cat-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}" data-level="child">${c.name}</button>`;
+      subHtml+=`<button class="cat-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
     });
     subEl.innerHTML=subHtml;
     subEl.style.display='flex';
@@ -373,13 +371,13 @@ function renderCatTabs(){
       const btn=ev.target.closest('.cat-tab');
       if(!btn)return;
       activeSubCatId=btn.dataset.id?Number(btn.dataset.id):null;
-      // sheet нэр байвал тухайн sheet-ийн бараануудыг татна
       const cat=categories.find(c=>c.id===activeSubCatId);
       if(cat&&cat.sheet){
-        await loadSheetProducts(cat.sheet);
+        await loadAndShowSheet(cat.sheet);
+      } else {
+        renderCatTabs();
+        renderOrderItems();
       }
-      renderCatTabs();
-      renderOrderItems();
     };
   } else {
     subEl.innerHTML='';
@@ -387,31 +385,76 @@ function renderCatTabs(){
   }
 }
 
-async function loadSheetProducts(sheetName){
+async function loadAndShowSheet(sheetName){
+  const grid=document.getElementById('order-items-grid');
+  if(grid)grid.innerHTML=`<div style="text-align:center;padding:20px;color:#aaa">🔄 Татаж байна...</div>`;
   try{
     const resp=await fetch(SCRIPT_URL+'?action=getSheetProducts&sheet='+encodeURIComponent(sheetName),{redirect:'follow'});
     const json=await resp.json();
-    if(!Array.isArray(json)||!json.length)return;
+    if(!Array.isArray(json)||!json.length){
+      if(grid)grid.innerHTML=`<div style="text-align:center;padding:20px;color:#aaa">Бараа байхгүй</div>`;
+      renderCatTabs();
+      return;
+    }
     const str=v=>String(v==null?'':v).trim();
-    const newItems=json.filter(row=>str(row['Product Name'])).map((row,idx)=>({
-      id:Date.now()+idx,
+    window._sheetItems=json.filter(row=>str(row['Product Name'])).map((row,idx)=>({
+      id:'s_'+sheetName+'_'+idx,
       name:str(row['Product Name']),
-      cat:str(row['Category'])||'Бусад',
+      cat:str(row['Category'])||sheetName,
       subcat:str(row['Subcategory'])||'',
       type:(()=>{const t=str(row['Type']||'').toLowerCase();return(t==='sale'||t==='sell')?'sell':'rent';})(),
       qty:parseInt(row['Stock']||0)||0,
       price:parseFloat(str(row['Selling_price']||'0').replace(/[₮,\s]/g,''))||0,
       color:str(row['Color']),size:str(row['Size']),
       imageUrl:fixImageUrl(str(row['Image_url']||row['image_url']||'')),
-      note:'',status:'available',
-    }));
-    // Тухайн sheet-ийн бараануудыг нэмнэ (давхардахгүйгээр)
-    newItems.forEach(ni=>{
-      if(!inventory.find(i=>i.name===ni.name&&i.cat===ni.cat)){
-        inventory.push(ni);
-      }
-    });
-  }catch(e){ console.log('Sheet татах алдаа:',e); }
+    })).filter(i=>i.qty>0);
+    renderCatTabs();
+    renderSheetItems(window._sheetItems);
+  }catch(e){
+    if(grid)grid.innerHTML=`<div style="text-align:center;padding:20px;color:#aaa">⚠️ Алдаа</div>`;
+  }
+}
+
+function renderSheetItems(items){
+  const grid=document.getElementById('order-items-grid');
+  if(!grid)return;
+  const q=(document.getElementById('o-search')?.value||'').toLowerCase();
+  const filtered=items.filter(i=>!q||i.name.toLowerCase().includes(q)||(i.color||'').toLowerCase().includes(q));
+  grid.innerHTML=filtered.map(item=>{
+    const inCart=cart.find(c=>c.id===item.id);
+    const imgHtml=item.imageUrl
+      ?`<div style="width:60px;height:60px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#f5eef5">
+          <img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=\\'font-size:22px\\'>🎁</span>'">
+        </div>`
+      :`<div style="width:60px;height:60px;flex-shrink:0;border-radius:8px;background:#f5eef5;display:flex;align-items:center;justify-content:center;font-size:24px">🎁</div>`;
+    return`<div class="item-card${inCart?' selected':''}" onclick="toggleSheetItem('${item.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px">
+      <div style="flex:1;min-width:0">
+        <div class="ic-name">${item.name}</div>
+        ${item.color||item.size?`<div class="ic-sub">${[item.color,item.size].filter(Boolean).join(' / ')}</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <div class="ic-price">${fmtMoney(item.price)}</div>
+          <div class="ic-stock">×${item.qty}ш</div>
+        </div>
+        ${inCart?`<div class="qty-row" onclick="event.stopPropagation()" style="margin-top:6px">
+          <button class="qty-btn" onclick="updateQty('${item.id}',-1)">−</button>
+          <span style="font-weight:700;min-width:20px;text-align:center">${inCart.qty}</span>
+          <button class="qty-btn" onclick="updateQty('${item.id}',1)">+</button>
+        </div>`:''}
+      </div>
+      ${imgHtml}
+    </div>`;
+  }).join('')||`<div style="text-align:center;padding:20px;color:#ccc">Бараа олдсонгүй</div>`;
+  renderCart();
+}
+
+function toggleSheetItem(id){
+  const item=(window._sheetItems||[]).find(i=>i.id===id);
+  if(!item)return;
+  const idx=cart.findIndex(c=>c.id===id);
+  if(idx>=0)cart.splice(idx,1);
+  else cart.push({id:item.id,name:item.name,price:item.price,qty:1,type:item.type||'rent',maxQty:item.qty});
+  if(window._sheetItems)renderSheetItems(window._sheetItems);
+  else renderOrderItems();
 }
 
 function renderOrderItems(){
