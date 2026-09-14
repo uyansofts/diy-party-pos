@@ -401,14 +401,60 @@ body {
 .search-bar { position: relative; }
 .search-bar input { padding-left: 36px; }
 .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #ccc; font-size: 14px; pointer-events: none; }
+
+/* 0-р түвшин: Карт загвар (том, emoji + нэр) */
+.type-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 72px; padding: 10px 8px; border-radius: 14px;
+  border: 2px solid #f0e0e8; background: white;
+  font-size: 11px; font-weight: 700; cursor: pointer; color: #bbb;
+  transition: all 0.18s; flex-shrink: 0; text-align: center;
+  gap: 4px; font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 2px 8px rgba(232,82,122,0.06);
+}
+.tc-emoji { font-size: 22px; line-height: 1; }
+.tc-name { font-size: 10px; font-weight: 700; line-height: 1.2; word-break: keep-all; }
+.type-card:hover { border-color: var(--rose); color: var(--rose); transform: translateY(-1px); }
+.type-card.active {
+  background: linear-gradient(135deg, var(--rose), #c0305a);
+  color: white; border-color: var(--rose);
+  box-shadow: 0 4px 14px rgba(232,82,122,0.35);
+  transform: translateY(-1px);
+}
+
+/* Category chips — 3 түвшин */
 .pos-cat-tab {
   white-space: nowrap; padding: 6px 14px; border-radius: 20px;
   border: 1.5px solid #e0c8d0; background: white;
-  font-size: 12px; font-weight: 600; cursor: pointer; color: #888;
-  transition: all 0.15s; flex-shrink: 0; min-width: 44px;
+  font-size: 13px; font-weight: 700; cursor: pointer; color: #888;
+  transition: all 0.15s; flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.pos-cat-tab:hover { border-color: var(--rose); color: var(--rose); }
+.pos-cat-tab.active { background: var(--dark); color: white; border-color: var(--dark); box-shadow: 0 2px 8px rgba(26,10,18,0.2); }
+
+/* 2-р түвшин chip */
+.pos-sub-tab {
+  white-space: nowrap; padding: 5px 12px; border-radius: 20px;
+  border: 1.5px solid #f0d0dc; background: #fff5f8;
+  font-size: 12px; font-weight: 600; cursor: pointer; color: #c07090;
+  transition: all 0.15s; flex-shrink: 0;
   font-family: 'DM Sans', sans-serif;
 }
-.pos-cat-tab.active { background: var(--dark); color: white; border-color: var(--dark); }
+.pos-sub-tab:hover { border-color: var(--rose); color: var(--rose); background: #ffe8f0; }
+.pos-sub-tab.active { background: var(--rose); color: white; border-color: var(--rose); box-shadow: 0 2px 8px rgba(232,82,122,0.25); }
+
+/* 3-р түвшин chip */
+.pos-grand-tab {
+  white-space: nowrap; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid #f5dde8; background: #fff0f8;
+  font-size: 11px; font-weight: 600; cursor: pointer; color: #d090b0;
+  transition: all 0.15s; flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+}
+.pos-grand-tab:hover { border-color: #e8a0c0; color: var(--rose); }
+.pos-grand-tab.active { background: #ffd0e8; color: var(--rose-dark); border-color: var(--rose); }
 
 .item-btn {
   background: var(--light);
@@ -567,8 +613,8 @@ body {
                   📷
                 </button>
               </div>
-              <!-- 0-р түвшин: parent_id=0 → Type tab -->
-              <div id="type-level-tabs" style="display:none;gap:8px;margin-bottom:8px;flex-wrap:wrap"></div>
+              <!-- 0-р түвшин: parent_id=0 → Карт загвар -->
+              <div id="type-level-tabs" style="display:none;gap:8px;margin-bottom:14px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <!-- 1-р мөр: Эцэг ангиллууд -->
               <div id="pos-cat-scroll" style="display:none;gap:6px;overflow-x:auto;margin-bottom:4px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
               <!-- 2-р мөр: Хүүхэд ангиллууд -->
@@ -1264,18 +1310,24 @@ function renderPosCatTabs() {
   const subScroll = document.getElementById('pos-subcat-scroll');
   const grandScroll = document.getElementById('pos-grandcat-scroll');
 
-  // 0-р түвшин: parent_id=0 → Type tab
+  // 0-р түвшин: parent_id=0 → Карт загвар (том, emoji + нэр)
+  const typeEmoji = {'Party Shop':'🎉','Гар урлалын материал':'✂️','Тусгай захиалга':'⭐','Багц':'🎁','Түрээс':'🔄','Зарах':'🛍️'};
   const typeLevel = categories.filter(c => c.parent_id === 0);
   if (typeEl) {
     if (typeLevel.length > 0) {
-      let typeHtml = `<button class="btn btn-sm${!window._activeTypeId?' btn-primary':' btn-outline'}" data-id="">Бүгд</button>`;
+      let typeHtml = `<button class="type-card${!window._activeTypeId?' active':''}" data-id="">
+        <span class="tc-emoji">🏠</span><span class="tc-name">Бүгд</span>
+      </button>`;
       typeLevel.forEach(c => {
-        typeHtml += `<button class="btn btn-sm${window._activeTypeId===c.id?' btn-primary':' btn-outline'}" data-id="${c.id}">${c.name}</button>`;
+        const emoji = typeEmoji[c.name] || '🎪';
+        typeHtml += `<button class="type-card${window._activeTypeId===c.id?' active':''}" data-id="${c.id}">
+          <span class="tc-emoji">${emoji}</span><span class="tc-name">${c.name}</span>
+        </button>`;
       });
       typeEl.innerHTML = typeHtml;
       typeEl.style.display = 'flex';
       typeEl.onclick = function(ev) {
-        const btn = ev.target.closest('.btn');
+        const btn = ev.target.closest('.type-card');
         if (!btn) return;
         window._activeTypeId = btn.dataset.id ? Number(btn.dataset.id) : null;
         activePOSCat = null; activePOSSubCat = null; window._activePOSGrand = null;
@@ -1284,12 +1336,10 @@ function renderPosCatTabs() {
     } else { typeEl.style.display = 'none'; }
   }
 
-  // 1-р түвшин: сонгосон type-ийн хүүхдүүд (parent_id = _activeTypeId)
-  // эсвэл parent_id=null байгаа ангиллууд
+  // 1-р түвшин: том chip, бараан өнгө
   const parents = window._activeTypeId
     ? categories.filter(c => c.parent_id === window._activeTypeId)
     : categories.filter(c => !c.parent_id && c.parent_id !== 0);
-
   if (scroll) {
     if (parents.length > 0) {
       let html = `<button class="pos-cat-tab${!activePOSCat?' active':''}" data-id="">Бүгд</button>`;
@@ -1310,18 +1360,18 @@ function renderPosCatTabs() {
     } else { scroll.innerHTML = ''; scroll.style.display = 'none'; }
   }
 
-  // 2-р түвшин
+  // 2-р түвшин: дунд chip, ягаан өнгө
   const children = activePOSCat ? categories.filter(c => c.parent_id === activePOSCat) : [];
   if (subScroll) {
     if (children.length > 0) {
-      let subHtml = `<button class="pos-cat-tab${!activePOSSubCat?' active':''}" data-id="">Бүгд</button>`;
+      let subHtml = `<button class="pos-sub-tab${!activePOSSubCat?' active':''}" data-id="">Бүгд</button>`;
       children.forEach(c => {
-        subHtml += `<button class="pos-cat-tab${activePOSSubCat===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+        subHtml += `<button class="pos-sub-tab${activePOSSubCat===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
       });
       subScroll.innerHTML = subHtml;
       subScroll.style.display = 'flex';
       subScroll.onclick = function(ev) {
-        const btn = ev.target.closest('.pos-cat-tab');
+        const btn = ev.target.closest('.pos-sub-tab');
         if (!btn) return;
         activePOSSubCat = btn.dataset.id ? Number(btn.dataset.id) : null;
         window._activePOSGrand = null;
@@ -1332,18 +1382,18 @@ function renderPosCatTabs() {
     } else { subScroll.innerHTML = ''; subScroll.style.display = 'none'; }
   }
 
-  // 3-р түвшин
+  // 3-р түвшин: жижиг chip, цайвар ягаан
   const grandChildren = activePOSSubCat ? categories.filter(c => c.parent_id === activePOSSubCat) : [];
   if (grandScroll) {
     if (grandChildren.length > 0) {
-      let gHtml = `<button class="pos-cat-tab${!window._activePOSGrand?' active':''}" data-id="">Бүгд</button>`;
+      let gHtml = `<button class="pos-grand-tab${!window._activePOSGrand?' active':''}" data-id="">Бүгд</button>`;
       grandChildren.forEach(c => {
-        gHtml += `<button class="pos-cat-tab${window._activePOSGrand===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+        gHtml += `<button class="pos-grand-tab${window._activePOSGrand===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
       });
       grandScroll.innerHTML = gHtml;
       grandScroll.style.display = 'flex';
       grandScroll.onclick = function(ev) {
-        const btn = ev.target.closest('.pos-cat-tab');
+        const btn = ev.target.closest('.pos-grand-tab');
         if (!btn) return;
         window._activePOSGrand = btn.dataset.id ? Number(btn.dataset.id) : null;
         const cat = categories.find(c => c.id === window._activePOSGrand);

@@ -31,16 +31,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 @media(max-width:400px){.form-row{grid-template-columns:1fr;}}
 
-/* Type tabs */
-.type-tabs{display:flex;gap:8px;margin-bottom:12px;}
-.type-tab{flex:1;padding:9px;border-radius:8px;border:1.5px solid #e0c8d0;background:white;font-size:13px;font-weight:600;cursor:pointer;color:#aaa;transition:all 0.15s;}
-.type-tab.active{background:var(--rose);color:white;border-color:var(--rose);}
+/* Type карт (parent_id=0) */
+.type-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.type-tabs::-webkit-scrollbar{display:none;}
+.type-card{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:72px;padding:10px 8px;border-radius:14px;border:2px solid #f0e0e8;background:white;font-size:11px;font-weight:700;cursor:pointer;color:#bbb;transition:all 0.18s;flex-shrink:0;text-align:center;gap:4px;box-shadow:0 2px 8px rgba(232,82,122,0.06);}
+.tc-emoji{font-size:22px;line-height:1;}
+.tc-name{font-size:10px;font-weight:700;line-height:1.2;}
+.type-card:hover{border-color:var(--rose);color:var(--rose);transform:translateY(-1px);}
+.type-card.active{background:linear-gradient(135deg,var(--rose),#c0305a);color:white;border-color:var(--rose);box-shadow:0 4px 14px rgba(232,82,122,0.35);transform:translateY(-1px);}
 
-/* Category scroll tabs */
-.cat-scroll{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px;scrollbar-width:none;}
+/* 1-р түвшин chip */
+.cat-scroll{display:flex;gap:6px;overflow-x:auto;margin-bottom:6px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .cat-scroll::-webkit-scrollbar{display:none;}
-.cat-tab{white-space:nowrap;padding:6px 14px;border-radius:20px;border:1.5px solid #e0c8d0;background:white;font-size:12px;font-weight:600;cursor:pointer;color:#aaa;transition:all 0.15s;flex-shrink:0;}
-.cat-tab.active{background:var(--dark);color:white;border-color:var(--dark);}
+.cat-tab{white-space:nowrap;padding:6px 14px;border-radius:20px;border:1.5px solid #e0c8d0;background:white;font-size:13px;font-weight:700;cursor:pointer;color:#888;transition:all 0.15s;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.cat-tab:active{transform:scale(0.96);}
+.cat-tab.active{background:var(--dark);color:white;border-color:var(--dark);box-shadow:0 2px 8px rgba(26,10,18,0.2);}
+
+/* 2-р түвшин chip */
+.sub-tab{white-space:nowrap;padding:5px 12px;border-radius:20px;border:1.5px solid #f0d0dc;background:#fff5f8;font-size:12px;font-weight:600;cursor:pointer;color:#c07090;transition:all 0.15s;flex-shrink:0;}
+.sub-tab:active{transform:scale(0.96);}
+.sub-tab.active{background:var(--rose);color:white;border-color:var(--rose);box-shadow:0 2px 8px rgba(232,82,122,0.25);}
+
+/* 3-р түвшин chip */
+.grand-tab{white-space:nowrap;padding:4px 10px;border-radius:20px;border:1px solid #f5dde8;background:#fff0f8;font-size:11px;font-weight:600;cursor:pointer;color:#d090b0;transition:all 0.15s;flex-shrink:0;}
+.grand-tab:active{transform:scale(0.96);}
+.grand-tab.active{background:#ffd0e8;color:var(--rose-dark);border-color:var(--rose);}
 
 /* Search */
 .search-wrap{position:relative;margin-bottom:12px;}
@@ -341,19 +356,21 @@ function renderCatTabs(){
   const grandEl=document.getElementById('grandcat-tabs');
   if(!el)return;
 
-  // 0-р түвшин: parent_id=0 → Type tab загвараар
+  // 0-р түвшин: Карт загвар
+  const typeEmoji={'Party Shop':'🎉','Гар урлалын материал':'✂️','Тусгай захиалга':'⭐','Багц':'🎁','Түрээс':'🔄','Зарах':'🛍️'};
   const typeLevel=categories.filter(c=>c.parent_id===0);
   const typeEl=document.getElementById('type-level-tabs');
   if(typeEl){
     if(typeLevel.length>0){
-      let typeHtml=`<button class="type-tab${!window._activeTypeId?' active':''}" data-id="">Бүгд</button>`;
+      let typeHtml=`<button class="type-card${!window._activeTypeId?' active':''}" data-id=""><span class="tc-emoji">🏠</span><span class="tc-name">Бүгд</span></button>`;
       typeLevel.forEach(c=>{
-        typeHtml+=`<button class="type-tab${window._activeTypeId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+        const emoji=typeEmoji[c.name]||'🎪';
+        typeHtml+=`<button class="type-card${window._activeTypeId===c.id?' active':''}" data-id="${c.id}"><span class="tc-emoji">${emoji}</span><span class="tc-name">${c.name}</span></button>`;
       });
       typeEl.innerHTML=typeHtml;
       typeEl.style.display='flex';
       typeEl.onclick=function(ev){
-        const btn=ev.target.closest('.type-tab');
+        const btn=ev.target.closest('.type-card');
         if(!btn)return;
         window._activeTypeId=btn.dataset.id?Number(btn.dataset.id):null;
         activeCatId=null; activeSubCatId=null; window._activeGrandId=null;
@@ -362,8 +379,7 @@ function renderCatTabs(){
     }else{typeEl.style.display='none';}
   }
 
-  // 1-р түвшин: parent_id=null (эцэг ангилал)
-  // Хэрэв type сонгосон бол тухайн type-ийн хүүхдүүдийг харуулна
+  // 1-р түвшин
   let parents;
   if(window._activeTypeId){
     parents=categories.filter(c=>c.parent_id===window._activeTypeId);
@@ -391,14 +407,14 @@ function renderCatTabs(){
   const children=activeCatId?categories.filter(c=>c.parent_id===activeCatId):[];
   if(subEl){
     if(children.length>0){
-      let subHtml=`<button class="cat-tab${!activeSubCatId?' active':''}" data-id="">Бүгд</button>`;
+      let subHtml=`<button class="sub-tab${!activeSubCatId?' active':''}" data-id="">Бүгд</button>`;
       children.forEach(c=>{
-        subHtml+=`<button class="cat-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+        subHtml+=`<button class="sub-tab${activeSubCatId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
       });
       subEl.innerHTML=subHtml;
       subEl.style.display='flex';
       subEl.onclick=function(ev){
-        const btn=ev.target.closest('.cat-tab');
+        const btn=ev.target.closest('.sub-tab');
         if(!btn)return;
         activeSubCatId=btn.dataset.id?Number(btn.dataset.id):null;
         window._activeGrandId=null;
@@ -413,14 +429,14 @@ function renderCatTabs(){
   const grandChildren=activeSubCatId?categories.filter(c=>c.parent_id===activeSubCatId):[];
   if(grandEl){
     if(grandChildren.length>0){
-      let gHtml=`<button class="cat-tab${!window._activeGrandId?' active':''}" data-id="">Бүгд</button>`;
+      let gHtml=`<button class="grand-tab${!window._activeGrandId?' active':''}" data-id="">Бүгд</button>`;
       grandChildren.forEach(c=>{
-        gHtml+=`<button class="cat-tab${window._activeGrandId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
+        gHtml+=`<button class="grand-tab${window._activeGrandId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
       });
       grandEl.innerHTML=gHtml;
       grandEl.style.display='flex';
       grandEl.onclick=function(ev){
-        const btn=ev.target.closest('.cat-tab');
+        const btn=ev.target.closest('.grand-tab');
         if(!btn)return;
         window._activeGrandId=btn.dataset.id?Number(btn.dataset.id):null;
         const cat=categories.find(c=>c.id===window._activeGrandId);
