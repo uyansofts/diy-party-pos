@@ -151,6 +151,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
           <input class="input-field" id="o-search" placeholder="Бараа хайх..." oninput="renderOrderItems()">
         </div>
 
+        <!-- Hidden divs for backward compat -->
+        <div id="cat-tabs" style="display:none"></div>
+        <div id="subcat-tabs" style="display:none"></div>
         <!-- Dropdown: 1-2-3-р түвшин, search-аас ДООР -->
         <div id="cat-dropdown-wrap" style="display:none;margin-bottom:10px">
           <!-- 1-р түвшин dropdown -->
@@ -161,7 +164,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
             </select>
           </div>
           <!-- 2-р түвшин dropdown -->
-          <div id="subcat-dropdown-row" style="display:none;flex;gap:6px;align-items:center;margin-bottom:6px">
+          <div id="subcat-dropdown-row" style="display:none;gap:6px;align-items:center;margin-bottom:6px">
             <select id="subcat-select" onchange="onSubCatSelect(this.value)"
               style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #f0d0dc;background:#fff5f8;font-size:12px;font-weight:600;color:#c07090;cursor:pointer;appearance:auto">
               <option value="">— Дэд ангилал —</option>
@@ -366,15 +369,12 @@ async function loadCategories(){
 function getCatName(id){ const c=categories.find(c=>c.id===id); return c?c.name:''; }
 
 function renderCatTabs(){
-  const el=document.getElementById('cat-tabs');
-  const subEl=document.getElementById('subcat-tabs');
   const grandEl=document.getElementById('grandcat-tabs');
-  if(!el)return;
+  const typeEl=document.getElementById('type-level-tabs');
 
   // 0-р түвшин: Карт загвар
   const typeEmoji={'Party Shop':'🎉','Гар урлалын материал':'✂️','Тусгай захиалга':'⭐','Багц':'🎁','Түрээс':'🔄','Зарах':'🛍️'};
   const typeLevel=categories.filter(c=>c.parent_id===0);
-  const typeEl=document.getElementById('type-level-tabs');
   if(typeEl){
     if(typeLevel.length>0){
       let typeHtml=`<button class="type-card${!window._activeTypeId?' active':''}" data-id=""><span class="tc-emoji">🏠</span><span class="tc-name">Бүгд</span></button>`;
@@ -432,16 +432,16 @@ function renderCatTabs(){
 
   // 3-р түвшин: chip
   const grandChildren=activeSubCatId?categories.filter(c=>c.parent_id===activeSubCatId):[];
-  const grandEl=document.getElementById('grandcat-tabs');
-  if(grandEl){
+  const grandEl2=document.getElementById('grandcat-tabs');
+  if(grandEl2){
     if(grandChildren.length>0){
       let gHtml=`<button class="grand-tab${!window._activeGrandId?' active':''}" data-id="">Бүгд</button>`;
       grandChildren.forEach(c=>{
         gHtml+=`<button class="grand-tab${window._activeGrandId===c.id?' active':''}" data-id="${c.id}">${c.name}</button>`;
       });
-      grandEl.innerHTML=gHtml;
-      grandEl.style.display='flex';
-      grandEl.onclick=function(ev){
+      grandEl2.innerHTML=gHtml;
+      grandEl2.style.display='flex';
+      grandEl2.onclick=function(ev){
         const btn=ev.target.closest('.grand-tab');
         if(!btn)return;
         window._activeGrandId=btn.dataset.id?Number(btn.dataset.id):null;
@@ -449,7 +449,7 @@ function renderCatTabs(){
         if(cat&&cat.sheet){loadAndShowSheet(cat.sheet);}
         else{renderCatTabs();renderOrderItems();}
       };
-    } else {grandEl.innerHTML='';grandEl.style.display='none';}
+    } else {grandEl2.innerHTML='';grandEl2.style.display='none';}
   }
 }
 
